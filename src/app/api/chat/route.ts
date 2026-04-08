@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
         // ── STEP 2: Agent decides if web search adds value (Gemini call #2) ──
         const agentModel = genAI.getGenerativeModel({
           model: "gemini-2.5-flash",
-          systemInstruction: `You are Synapse, a document intelligence assistant.
+          systemInstruction: `You are Cortex, a document intelligence assistant.
 Document search has already been completed for the user's question.
 ${docResults.sources.length > 0
   ? `Found ${docResults.sources.length} relevant document chunk(s).`

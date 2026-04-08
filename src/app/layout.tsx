@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Synapse — AI Document Intelligence",
+  title: "Cortex — AI Document Intelligence",
   description: "Chat with your documents using AI-powered vector search.",
 };
 

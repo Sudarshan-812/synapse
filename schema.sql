@@ -1,5 +1,5 @@
 -- ============================================================
--- Synapse — Supabase Schema
+-- Cortex — Supabase Schema
 -- Run this in: Supabase Dashboard → SQL Editor → New Query
 -- ============================================================
 
@@ -130,11 +130,11 @@ CREATE POLICY "chunks_insert" ON document_chunks FOR INSERT
 -- STORAGE
 -- ============================================================
 -- In Supabase Dashboard → Storage → New Bucket:
---   Name: synapse-uploads
+--   Name: cortex-uploads
 --   Public: false
 --
 -- Then add this Storage Policy (RLS for bucket):
 --
--- INSERT policy: ((bucket_id = 'synapse-uploads') AND (auth.role() = 'authenticated'))
--- SELECT policy: ((bucket_id = 'synapse-uploads') AND (auth.role() = 'authenticated'))
+-- INSERT policy: ((bucket_id = 'cortex-uploads') AND (auth.role() = 'authenticated'))
+-- SELECT policy: ((bucket_id = 'cortex-uploads') AND (auth.role() = 'authenticated'))
 -- ============================================================

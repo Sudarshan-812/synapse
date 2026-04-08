@@ -54,7 +54,7 @@ export function ChatSidebar({
     <aside className="flex flex-col h-full w-64 bg-zinc-900 text-white flex-shrink-0">
       {/* Brand */}
       <div className="px-4 py-5 border-b border-zinc-700/60">
-        <p className="font-bold text-base tracking-tight">Synapse</p>
+        <p className="font-bold text-base tracking-tight">Cortex</p>
         <p className="text-xs text-zinc-400 truncate mt-0.5">{workspaceName}</p>
       </div>
 

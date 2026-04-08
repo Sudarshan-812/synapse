@@ -21,7 +21,7 @@ export default function ReportPage() {
           <div className="inline-block bg-blue-600 text-white text-xs font-bold tracking-widest px-3 py-1.5 rounded mb-6 uppercase">
             Technical Project Report
           </div>
-          <h1 className="text-6xl font-black text-zinc-900 tracking-tight mb-4">Synapse</h1>
+          <h1 className="text-6xl font-black text-zinc-900 tracking-tight mb-4">Cortex</h1>
           <p className="text-2xl text-blue-600 font-semibold mb-6">AI Document Intelligence Platform</p>
           <p className="text-zinc-500 text-base leading-relaxed max-w-2xl">
             A production-grade, full-stack AI platform that allows users to upload documents and query them
@@ -71,23 +71,23 @@ export default function ReportPage() {
         <section className="mb-14 print:break-before-page">
           <H2>1. Project Overview</H2>
           <P>
-            Synapse is a <Strong>Retrieval-Augmented Generation (RAG)</Strong> platform — a category of AI
+            Cortex is a <Strong>Retrieval-Augmented Generation (RAG)</Strong> platform — a category of AI
             application where a language model is given specific information retrieved from a database
             before answering questions. This allows the AI to answer based on <em>your own documents</em>,
             not just its training data.
           </P>
           <P>
-            The core problem Synapse solves: organisations and individuals accumulate large volumes of
-            documents (PDFs, reports, CSVs, notes) that are difficult to search or summarise. Synapse
+            The core problem Cortex solves: organisations and individuals accumulate large volumes of
+            documents (PDFs, reports, CSVs, notes) that are difficult to search or summarise. Cortex
             converts those documents into a searchable knowledge base that anyone can query conversationally.
           </P>
           <P>
-            Unlike simple keyword search, Synapse understands the <em>meaning</em> of questions — so
+            Unlike simple keyword search, Cortex understands the <em>meaning</em> of questions — so
             asking "What is the refund policy?" will find the relevant passage even if the document uses
             the phrase "money-back guarantee" instead.
           </P>
           <InfoBox title="Key Innovation">
-            Synapse combines three retrieval methods simultaneously — semantic vector similarity, BM25
+            Cortex combines three retrieval methods simultaneously — semantic vector similarity, BM25
             keyword ranking, and AI re-ranking — then streams the answer token-by-token in real time.
             This is the same architecture used by enterprise RAG products like Notion AI and Perplexity.
           </InfoBox>
@@ -118,7 +118,7 @@ export default function ReportPage() {
         <section className="mb-14">
           <H2>3. System Architecture</H2>
           <P>
-            Synapse follows a <Strong>three-layer architecture</Strong>: a Next.js frontend (UI + server logic),
+            Cortex follows a <Strong>three-layer architecture</Strong>: a Next.js frontend (UI + server logic),
             Supabase as the data and auth platform, and Google Gemini as the AI layer.
           </P>
           <Code>{`USER BROWSER
@@ -175,7 +175,7 @@ created_at   timestamptz`}</Code>
           <Code>{`id           uuid  PRIMARY KEY
 workspace_id uuid  REFERENCES workspaces
 name         text  -- original filename
-storage_path text  -- path inside synapse-uploads bucket
+storage_path text  -- path inside cortex-uploads bucket
 file_type    text  -- MIME type
 size_bytes   bigint
 created_at   timestamptz`}</Code>
@@ -262,7 +262,7 @@ Try signInWithPassword()
             file closer to something the AI can search efficiently.
           </P>
           <Code>{`STAGE 1 — Upload to Storage
-  File → Supabase Storage bucket (synapse-uploads)
+  File → Supabase Storage bucket (cortex-uploads)
   Path format: {workspaceId}/{timestamp}_{filename}
 
 STAGE 2 — Save Metadata
@@ -302,7 +302,7 @@ STAGE 5 — Embed + Store
         <section className="mb-14">
           <H2>7. Hybrid Search — Vector + BM25 + RRF</H2>
           <P>
-            Most RAG systems use only vector (semantic) search. Synapse uses <Strong>three methods combined</Strong>,
+            Most RAG systems use only vector (semantic) search. Cortex uses <Strong>three methods combined</Strong>,
             which is significantly more accurate.
           </P>
 
@@ -398,7 +398,7 @@ These 3 chunks become the final context window for answer generation`}</Code>
         <section className="mb-14">
           <H2>9. Streaming Responses (Server-Sent Events)</H2>
           <P>
-            Instead of waiting 5–10 seconds for a complete answer, Synapse streams the response
+            Instead of waiting 5–10 seconds for a complete answer, Cortex streams the response
             token-by-token — exactly like ChatGPT. This uses <Strong>Server-Sent Events (SSE)</Strong>.
           </P>
           <H3>How SSE Works</H3>
@@ -443,7 +443,7 @@ while (true) {
             by the second point?"
           </P>
           <P>
-            Synapse fetches the last 6 messages from the database and passes them to Gemini as a
+            Cortex fetches the last 6 messages from the database and passes them to Gemini as a
             native <code>history[]</code> array in <code>startChat()</code>. This is not a prompt
             hack — it uses the Gemini API's built-in multi-turn conversation support.
           </P>
@@ -477,7 +477,7 @@ await chat.sendMessage(currentQuery)`}</Code>
           <H2>11. Agentic Tool Use</H2>
           <P>
             A standard RAG system always searches documents. An <Strong>agentic</Strong> system lets the
-            AI decide which tools to use based on the question type. Synapse implements a two-tool agent.
+            AI decide which tools to use based on the question type. Cortex implements a two-tool agent.
           </P>
           <H3>Architecture: Mandatory + Optional</H3>
           <P>
@@ -504,7 +504,7 @@ Result: Agent calls search_web  → Tavily API fetches web results
         Agent responds "proceed" → skip web search, use docs only`}</Code>
           <H3>Web Search via Tavily</H3>
           <P>
-            When the agent calls <code>search_web</code>, Synapse calls the Tavily API — a search API
+            When the agent calls <code>search_web</code>, Cortex calls the Tavily API — a search API
             specifically designed for AI agents. It returns clean, structured results (title + content)
             rather than raw HTML. Results are appended to the context before the final answer is generated.
           </P>
@@ -607,7 +607,7 @@ const { data: documents } = await supabase
         {/* ── 16. FILE STRUCTURE ── */}
         <section className="mb-14">
           <H2>16. File Structure</H2>
-          <Code>{`synapse/
+          <Code>{`cortex/
 ├── schema.sql                    ← Full database setup SQL
 ├── src/
 │   ├── app/
@@ -726,7 +726,7 @@ const { data: documents } = await supabase
 
         {/* ── FOOTER ── */}
         <div className="border-t-2 border-zinc-200 pt-8 mt-16 text-center text-xs text-zinc-400">
-          Synapse — AI Document Intelligence Platform · Built by Sudarshan · April 2026
+          Cortex — AI Document Intelligence Platform · Built by Sudarshan · April 2026
         </div>
 
       </div>

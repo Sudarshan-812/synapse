@@ -52,7 +52,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Synapse</CardTitle>
+          <CardTitle className="text-2xl font-bold">Cortex</CardTitle>
           <CardDescription>
             Enter your email to sign in to your workspace.
           </CardDescription>
