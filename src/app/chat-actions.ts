@@ -8,10 +8,10 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 export async function getAnswer(query: string, workspaceId: string) {
   const supabase = await createClient();
 
-  // 1. Embed the User's Query
-  const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  // 1. Embed the User's Query — same model/dim as ingestion (gemini-embedding-001 → slice 768)
+  const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
   const result = await embeddingModel.embedContent(query);
-  const queryEmbedding = result.embedding.values;
+  const queryEmbedding = result.embedding.values.slice(0, 768);
 
   // 2. Search for Similar Chunks (Vector Search)
   // This calls the postgres function we created earlier
