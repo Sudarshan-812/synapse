@@ -36,7 +36,7 @@ export async function getAnswer(query: string, workspaceId: string) {
   }
 
   // 4. Generate Answer with Gemini
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   
   const prompt = `
     You are a helpful AI assistant for a specific workspace.

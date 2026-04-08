@@ -29,9 +29,7 @@ export default function LoginPage() {
     })
 
     if (signInError) {
-      // 2. If login fails, try to sign up (Auto-Sign Up Logic)
-      // In a real strict B2B app, you might separate these. 
-      // For a portfolio, this "Magic Entry" UX is smooth.
+      
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,

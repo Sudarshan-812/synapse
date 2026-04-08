@@ -1,111 +1,70 @@
 'use server'
 
-import { createClient } from "@/utils/supabase/server";
-import { revalidatePath } from "next/cache";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import PDFParser from "pdf2json";
+import { createClient } from "@/utils/supabase/server"
+import { revalidatePath } from "next/cache"
+import { GoogleGenerativeAI } from "@google/generative-ai"
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
+import { extractText, isSupportedFile } from "@/lib/parsers"
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!)
 
 export async function uploadDocument(formData: FormData) {
-  const supabase = await createClient();
-  
-  const file = formData.get('file') as File;
-  const workspaceId = formData.get('workspaceId') as string;
+  const supabase = await createClient()
 
-  if (!file || !workspaceId) return { error: "Missing file or workspace ID" };
+  const file = formData.get("file") as File
+  const workspaceId = formData.get("workspaceId") as string
 
-  // 1. Upload to Supabase Storage
-  const filePath = `${workspaceId}/${Date.now()}_${file.name}`;
+  if (!file || !workspaceId) return { error: "Missing file or workspace ID" }
+  if (!isSupportedFile(file)) return { error: "Unsupported file type. Use PDF, DOCX, TXT, MD, or CSV." }
+
+  const filePath = `${workspaceId}/${Date.now()}_${file.name}`
   const { error: uploadError } = await supabase.storage
-    .from('synapse-uploads')
-    .upload(filePath, file);
+    .from("synapse-uploads")
+    .upload(filePath, file)
 
-  if (uploadError) return { error: `Storage Error: ${uploadError.message}` };
+  if (uploadError) return { error: `Storage error: ${uploadError.message}` }
 
-  // 2. Create Database Record
   const { data: docData, error: dbError } = await supabase
-    .from('documents')
+    .from("documents")
     .insert({
       workspace_id: workspaceId,
       name: file.name,
       storage_path: filePath,
       file_type: file.type,
-      size_bytes: file.size
+      size_bytes: file.size,
     })
     .select()
-    .single();
+    .single()
 
-  if (dbError) return { error: `Database Error: ${dbError.message}` };
+  if (dbError) return { error: `Database error: ${dbError.message}` }
 
-  // === AI PIPELINE START ===
   try {
-    console.log("1. Starting AI Ingestion...");
+    const rawText = await extractText(file)
 
-    // 3. Extract Text using pdf2json
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    console.log("2. Parsing PDF...");
-    const parser = new PDFParser(undefined, true); 
+    if (!rawText?.trim()) throw new Error("Extracted text is empty.")
 
-    const rawText = await new Promise<string>((resolve, reject) => {
-      parser.on("pdfParser_dataError", (errData: any) => reject(new Error(`PDF Parse Error: ${errData.parserError}`)));
-      parser.on("pdfParser_dataReady", () => {
-        resolve((parser as any).getRawTextContent());
-      });
-      parser.parseBuffer(buffer);
-    });
-
-    if (!rawText || rawText.trim() === "") {
-      throw new Error("Parsed PDF text is empty.");
-    }
-
-    console.log("3. Chunking Text...");
-    // 4. Chunk the Text
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
-    });
-    const splitDocs = await splitter.createDocuments([rawText]);
+    })
+    const splitDocs = await splitter.createDocuments([rawText])
 
-    console.log(`4. Split into ${splitDocs.length} chunks. Generating embeddings...`);
+    const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" })
+    const chunksData = []
 
-    // 5. Generate Embeddings & Save
-    // gemini-embedding-001 returns 3072-dim; slice to 768 (Matryoshka truncation)
-    const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-    const chunksData = [];
-
-    for (let i = 0; i < splitDocs.length; i++) {
-      const chunk = splitDocs[i];
-      const cleanContent = chunk.pageContent.replace(/\n/g, " ");
-
-      const result = await model.embedContent(cleanContent);
-      const embedding = result.embedding.values.slice(0, 768);
-
-      chunksData.push({
-        document_id: docData.id,
-        content: cleanContent,
-        embedding
-      });
+    for (const chunk of splitDocs) {
+      const content = chunk.pageContent.replace(/\n/g, " ")
+      const result = await embeddingModel.embedContent(content)
+      const embedding = result.embedding.values.slice(0, 768)
+      chunksData.push({ document_id: docData.id, content, embedding })
     }
 
-    console.log("5. Saving to Supabase Vector Database...");
-    // 6. Batch Insert
-    const { error: vectorError } = await supabase
-      .from('document_chunks')
-      .insert(chunksData);
-
-    if (vectorError) throw new Error(`Supabase Vector Error: ${vectorError.message}`);
-
-    console.log("✅ AI Ingestion Complete.");
-
+    const { error: vectorError } = await supabase.from("document_chunks").insert(chunksData)
+    if (vectorError) throw new Error(`Vector DB error: ${vectorError.message}`)
   } catch (err: any) {
-    console.error("AI Ingestion Failed:", err);
-    return { error: `AI Error: ${err.message || String(err)}` };
+    return { error: `Processing error: ${err.message ?? String(err)}` }
   }
 
-  revalidatePath('/');
-  return { success: true };
+  revalidatePath("/")
+  return { success: true }
 }
