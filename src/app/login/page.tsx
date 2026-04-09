@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Mail, Lock, ArrowRight, Eye, EyeOff,
-  AlertCircle
+  AlertCircle, CheckCircle2 // Added CheckCircle2
 } from 'lucide-react';
 
 import SoftAurora from "@/components/SoftAurora";
@@ -20,6 +20,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // NEW: Added success state for email confirmation
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  
   const router = useRouter();
   const supabase = createClient();
 
@@ -27,15 +30,25 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccessMsg(null); // Clear previous messages
 
     try {
       if (isSignUp) {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
         if (signUpError) throw signUpError;
-        router.push('/dashboard');
+        
+        // Handle Email Confirmation Flow
+        if (!data.session) {
+            setSuccessMsg("Check your email for the confirmation link to complete setup.");
+            setEmail('');
+            setPassword('');
+        } else {
+            router.push('/dashboard');
+        }
+
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ 
           email, 
@@ -223,10 +236,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Polished Error State */}
-            <AnimatePresence>
+            {/* Error and Success States */}
+            <AnimatePresence mode="wait">
               {error && (
                 <motion.div
+                  key="error"
                   initial={{ opacity: 0, height: 0, y: -10 }}
                   animate={{ opacity: 1, height: 'auto', y: 0 }}
                   exit={{ opacity: 0, height: 0, y: -10 }}
@@ -236,6 +250,22 @@ export default function LoginPage() {
                   <div className="flex items-start gap-3 bg-red-50/80 border border-red-200 text-red-600 p-4 rounded-2xl mt-2">
                     <AlertCircle size={18} className="shrink-0 mt-0.5" />
                     <p className="text-[14px] font-medium leading-snug">{error}</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {successMsg && (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, height: 0, y: -10 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -10 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-start gap-3 bg-emerald-50/80 border border-emerald-200 text-emerald-600 p-4 rounded-2xl mt-2">
+                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
+                    <p className="text-[14px] font-medium leading-snug">{successMsg}</p>
                   </div>
                 </motion.div>
               )}
@@ -267,6 +297,7 @@ export default function LoginPage() {
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError(null);
+                setSuccessMsg(null);
                 setPassword('');
               }}
               className="font-bold text-zinc-950 hover:underline"
