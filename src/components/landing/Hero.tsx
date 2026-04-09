@@ -7,10 +7,6 @@ import SplitText from "@/components/SplitText";
 import ScrollReveal from "@/components/ScrollReveal";
 
 export function Hero() {
-  const handleAnimationComplete = () => {
-    console.log("Headline GSAP animation complete!");
-  };
-
   return (
     <main className="relative z-10 max-w-5xl mx-auto px-6 pt-32 pb-20 text-center">
       <motion.div
@@ -18,23 +14,19 @@ export function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Status Pill */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-zinc-200/80 mb-8 shadow-sm">
           <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs font-bold tracking-widest text-zinc-800 uppercase">Production RAG Live</span>
         </div>
 
-        {/* Headline */}
         <SplitText
           text="Your documents. Finally intelligent."
           className="text-6xl md:text-8xl lg:text-[6.5rem] font-bold tracking-[-0.03em] leading-[1.02] text-zinc-950 mb-8"
           delay={40}
           duration={1.1}
           tag="h1"
-          onLetterAnimationComplete={handleAnimationComplete}
         />
 
-        {/* Sub-headline */}
         <div className="mb-10 max-w-3xl mx-auto">
           <ScrollReveal
             baseOpacity={0.1}
@@ -48,7 +40,6 @@ export function Hero() {
         </div>
       </motion.div>
 
-      {/* CTAs */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

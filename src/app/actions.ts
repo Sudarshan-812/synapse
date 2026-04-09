@@ -18,9 +18,9 @@ export async function uploadDocument(formData: FormData) {
   if (!isSupportedFile(file)) return { error: "Unsupported file type. Use PDF, DOCX, TXT, MD, or CSV." }
 
   const safeName = file.name
-    .replace(/[^a-zA-Z0-9._-]/g, "_")   // replace any non-safe char with underscore
-    .replace(/_+/g, "_")                  // collapse consecutive underscores
-    .replace(/^_|_$/g, "")               // trim leading/trailing underscores
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
   const filePath = `${workspaceId}/${Date.now()}_${safeName}`
   const { error: uploadError } = await supabase.storage
     .from("synapse-uploads")

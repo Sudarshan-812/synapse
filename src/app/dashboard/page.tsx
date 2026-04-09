@@ -38,7 +38,7 @@ export default async function Dashboard() {
       .select()
       .single();
 
-    if (error) { console.error("Error creating workspace:", error); return; }
+    if (error) return;
 
     await supabase.from("workspace_members").insert({
       workspace_id: newWorkspace.id,
@@ -49,7 +49,6 @@ export default async function Dashboard() {
     redirect("/dashboard");
   }
 
-  // ── No workspace → Onboarding ─────────────────────────────────────────────
   if (!workspace) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans selection:bg-fuchsia-200 relative overflow-hidden">
@@ -90,7 +89,6 @@ export default async function Dashboard() {
     );
   }
 
-  // ── Fetch stats ────────────────────────────────────────────────────────────
   const [{ data: documents, count: docCount }] = await Promise.all([
     supabase
       .from("documents")
@@ -107,7 +105,6 @@ export default async function Dashboard() {
         .in("document_id", docIds)
     : { count: 0 };
 
-  // ── Dashboard ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950 font-sans selection:bg-fuchsia-200 relative overflow-hidden">
 
