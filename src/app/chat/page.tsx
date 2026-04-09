@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
-import { Bot } from "lucide-react"
+import { Brain } from "lucide-react"
 
 export default async function ChatIndexPage() {
   const supabase = await createClient()
@@ -29,15 +29,21 @@ export default async function ChatIndexPage() {
 
   // No sessions yet → empty state
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-zinc-50 gap-4">
-      <div className="bg-blue-50 p-5 rounded-full">
-        <Bot className="h-10 w-10 text-blue-500" />
-      </div>
-      <div className="text-center">
-        <p className="text-base font-semibold text-zinc-700">No chats yet</p>
-        <p className="text-sm text-zinc-400 mt-1">
-          Click <span className="font-medium text-zinc-600">New Chat</span> in the sidebar to get started.
-        </p>
+    <div className="flex flex-col items-center justify-center h-full bg-zinc-50 relative overflow-hidden">
+
+      {/* Subtle radial glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse_at_top,_#fdf4ff_0%,_transparent_70%)] pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col items-center gap-5 text-center px-6">
+        <div className="size-16 rounded-[1.25rem] bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center shadow-sm">
+          <Brain className="size-8 text-fuchsia-500" />
+        </div>
+        <div>
+          <p className="text-base font-bold text-zinc-900">No chats yet</p>
+          <p className="text-sm text-zinc-400 mt-1.5 max-w-[220px] leading-relaxed">
+            Click <span className="font-semibold text-zinc-700">New Chat</span> in the sidebar to get started.
+          </p>
+        </div>
       </div>
     </div>
   )

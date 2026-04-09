@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai"
@@ -33,7 +34,7 @@ async function searchDocuments(
   let topChunks: any[] = chunks
   if (chunks.length > 3) {
     try {
-      const rerankModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+      const rerankModel = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" })
       const rerankPrompt = `Score each passage's relevance to the question 1–10.
 Return ONLY a JSON array like [{"index":0,"score":8},...], nothing else.
 
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
 
         // ── STEP 2: Agent decides if web search adds value (Gemini call #2) ──
         const agentModel = genAI.getGenerativeModel({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.1-flash-lite-preview",
           systemInstruction: `You are Cortex, a document intelligence assistant.
 Document search has already been completed for the user's question.
 ${docResults.sources.length > 0
@@ -185,7 +186,8 @@ Your only job now: decide if a web search would add meaningful value.
 
         if (webCall) {
           controller.enqueue(sse({ type: "tool", name: "search_web", status: "running" }))
-          const webResult = await searchWeb((webCall.functionCall!.args as { query: string }).query)
+          const webQuery = (webCall.functionCall?.args as { query?: string } | undefined)?.query ?? query
+          const webResult = await searchWeb(webQuery)
           if (webResult) gatheredContext.push(webResult)
           controller.enqueue(sse({ type: "tool", name: "search_web", status: "done" }))
         }
@@ -197,7 +199,7 @@ Your only job now: decide if a web search would add meaningful value.
           ? `Use the context below to answer the question accurately and concisely. Cite specifics from the context where possible.\n\nContext:\n${context}\n\nQuestion: ${query}\n\nAnswer:`
           : `Answer this question as helpfully as possible: ${query}`
 
-        const streamModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+        const streamModel = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" })
         const streamResult = await streamModel.generateContentStream(finalPrompt)
 
         let fullText = ""

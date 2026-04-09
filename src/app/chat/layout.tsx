@@ -23,7 +23,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
     .order("updated_at", { ascending: false })
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 font-sans selection:bg-fuchsia-200">
       <ChatSidebar
         sessions={sessions ?? []}
         workspaceId={workspace.id}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
 import { createClient } from "@/utils/supabase/server";
@@ -36,7 +37,7 @@ export async function getAnswer(query: string, workspaceId: string) {
   }
 
   // 4. Generate Answer with Gemini
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
   
   const prompt = `
     You are a helpful AI assistant for a specific workspace.

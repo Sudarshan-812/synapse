@@ -5,9 +5,9 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Loader2, Mail, Lock, ArrowRight, Eye, EyeOff, 
-  BrainCircuit, AlertCircle
+import {
+  Loader2, Mail, Lock, ArrowRight, Eye, EyeOff,
+  AlertCircle
 } from 'lucide-react';
 
 import SoftAurora from "@/components/SoftAurora";
@@ -98,11 +98,7 @@ export default function LoginPage() {
           {/* Header with Bigger Custom Logo */}
           <div className="flex items-center justify-between mb-20">
             <div className="flex items-center gap-4">
-              <img 
-                src="/CortexLogo.png" 
-                alt="Cortex Logo" 
-                className="h-10 w-auto object-contain" // Increased to 40px height for Left Panel
-              />
+              <img src="/CortexLogo.png" alt="Cortex Logo" className="h-10 w-auto object-contain" />
               <span className="text-2xl font-extrabold tracking-tighter text-zinc-950">Cortex</span>
             </div>
             <div className="text-xs font-mono uppercase tracking-widest text-zinc-500 font-semibold">
@@ -146,13 +142,9 @@ export default function LoginPage() {
           transition={{ duration: 0.4 }}
           className="w-full max-w-[400px]"
         >
-          {/* Form Header with Bigger Crisp Logo */}
+          {/* Form Header */}
           <div className="text-center mb-10">
-            <img 
-              src="/CortexLogo.png" 
-              alt="Cortex Logo" 
-              className="h-12 w-auto object-contain mx-auto mb-6" // Increased to 48px height for Form focus
-            />
+            <img src="/CortexLogo.png" alt="Cortex Logo" className="h-12 w-auto object-contain mx-auto mb-6" />
             <h2 className="text-3xl font-bold tracking-tight text-zinc-950 mb-3">
               {isSignUp ? "Create your workspace" : "Welcome back"}
             </h2>

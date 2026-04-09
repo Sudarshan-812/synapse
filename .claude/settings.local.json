@@ -5,7 +5,10 @@
       "Bash(grep -o \"\\\\.from\\(['\\\\\"][^'\\\\\"]*['\\\\\"]\" /c/Users/mrsud/OneDrive/Desktop/Synapse/synapse/src/app/*.ts)",
       "Bash(npm install:*)",
       "Bash(node -e \"require\\('@google/generative-ai'\\); require\\('@langchain/textsplitters'\\); console.log\\('Both packages resolve OK'\\)\")",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)"
     ]
   }
 }
