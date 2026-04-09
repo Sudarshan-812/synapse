@@ -1,11 +1,17 @@
-"use client";
-
+import { createClient } from "@/utils/supabase/server";
 import SoftAurora from "@/components/SoftAurora";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // 1. Fetch Auth State Server-Side
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const isLoggedIn = !!user;
+  const avatarUrl = user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email || 'User'}&background=random`;
+
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950 overflow-hidden font-sans relative selection:bg-fuchsia-200">
 
@@ -29,9 +35,11 @@ export default function LandingPage() {
         />
       </div>
 
-      <Navbar />
-      <Hero />
+      {/* 2. Pass the auth state to your components */}
+      <Navbar isLoggedIn={isLoggedIn} avatarUrl={avatarUrl} />
+      <Hero isLoggedIn={isLoggedIn} />
       <Features />
+      
     </div>
   );
 }

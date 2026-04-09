@@ -2,11 +2,15 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react"; // Added Plus icon
 import SplitText from "@/components/SplitText";
 import ScrollReveal from "@/components/ScrollReveal";
 
-export function Hero() {
+interface HeroProps {
+  isLoggedIn?: boolean;
+}
+
+export function Hero({ isLoggedIn = false }: HeroProps) {
   return (
     <main className="relative z-10 max-w-5xl mx-auto px-6 pt-32 pb-20 text-center">
       <motion.div
@@ -46,19 +50,42 @@ export function Hero() {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="flex flex-col sm:flex-row gap-4 justify-center mt-6"
       >
-        <Link
-          href="/dashboard"
-          className="group flex items-center justify-center gap-2 bg-zinc-950 hover:bg-black text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.4)] hover:-translate-y-0.5"
-        >
-          Start Analyzing Documents
-          <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
-        </Link>
-        <Link
-          href="#features"
-          className="px-8 py-4 bg-white/50 backdrop-blur-xl border border-zinc-200/80 text-zinc-950 rounded-full font-bold text-lg hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
-        >
-          Learn How It Works
-        </Link>
+        {isLoggedIn ? (
+          /* ─── LOGGED IN STATE ─── */
+          <>
+            <Link
+              href="/dashboard"
+              className="group flex items-center justify-center gap-2 bg-zinc-950 hover:bg-black text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.4)] hover:-translate-y-0.5"
+            >
+              Open Dashboard
+              <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/dashboard" 
+              className="flex items-center justify-center gap-2 px-8 py-4 bg-white/50 backdrop-blur-xl border border-zinc-200/80 text-zinc-950 rounded-full font-bold text-lg hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
+              <Plus className="size-5 text-zinc-600" />
+              Create Workspace
+            </Link>
+          </>
+        ) : (
+          /* ─── LOGGED OUT STATE ─── */
+          <>
+            <Link
+              href="/login"
+              className="group flex items-center justify-center gap-2 bg-zinc-950 hover:bg-black text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.4)] hover:-translate-y-0.5"
+            >
+              Start Analyzing Documents
+              <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="#features"
+              className="px-8 py-4 bg-white/50 backdrop-blur-xl border border-zinc-200/80 text-zinc-950 rounded-full font-bold text-lg hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
+              Learn How It Works
+            </Link>
+          </>
+        )}
       </motion.div>
     </main>
   );
