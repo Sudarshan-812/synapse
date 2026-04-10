@@ -4,10 +4,11 @@ import React, { useState, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Mail, Lock, ArrowRight, Eye, EyeOff,
-  AlertCircle, CheckCircle2 // Added CheckCircle2
+  AlertCircle, CheckCircle2,
 } from 'lucide-react';
 
 import SoftAurora from "@/components/SoftAurora";
@@ -111,7 +112,7 @@ export default function LoginPage() {
           {/* Header with Bigger Custom Logo */}
           <div className="flex items-center justify-between mb-20">
             <div className="flex items-center gap-4">
-              <img src="/CortexLogo.png" alt="Cortex Logo" className="h-10 w-auto object-contain" />
+              <Image src="/CortexLogo.png" alt="Cortex Logo" width={40} height={40} className="object-contain" />
               <span className="text-2xl font-extrabold tracking-tighter text-zinc-950">Cortex</span>
             </div>
             <div className="text-xs font-mono uppercase tracking-widest text-zinc-500 font-semibold">
@@ -157,7 +158,7 @@ export default function LoginPage() {
         >
           {/* Form Header */}
           <div className="text-center mb-10">
-            <img src="/CortexLogo.png" alt="Cortex Logo" className="h-12 w-auto object-contain mx-auto mb-6" />
+            <Image src="/CortexLogo.png" alt="Cortex Logo" width={48} height={48} className="object-contain mx-auto mb-6" />
             <h2 className="text-3xl font-bold tracking-tight text-zinc-950 mb-3">
               {isSignUp ? "Create your workspace" : "Welcome back"}
             </h2>
@@ -211,9 +212,22 @@ export default function LoginPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[13px] font-bold text-zinc-950">Password</label>
                 {!isSignUp && (
-                  <Link href="#" className="text-[13px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!email) { setError("Enter your email above first."); return; }
+                      setIsLoading(true); setError(null);
+                      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+                      });
+                      setIsLoading(false);
+                      if (error) setError(error.message);
+                      else setSuccessMsg("Password reset email sent — check your inbox.");
+                    }}
+                    className="text-[13px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors"
+                  >
                     Forgot password?
-                  </Link>
+                  </button>
                 )}
               </div>
               <div className="relative">

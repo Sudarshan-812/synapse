@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import {
   Loader2, User, FileText, Globe, Search,
   Sparkles, ArrowUp, Plus, Mic,
@@ -329,7 +330,7 @@ export function ChatWindow({
                   className="flex flex-col items-center gap-3"
                 >
                   <div className="relative size-20 rounded-3xl bg-gradient-to-br from-fuchsia-50 to-purple-50 border border-fuchsia-100 shadow-[0_8px_32px_rgba(192,38,211,0.12)] flex items-center justify-center">
-                    <img src="/CortexLogo.png" alt="Cortex" className="h-10 w-auto object-contain" />
+                    <Image src="/CortexLogo.png" alt="Cortex" width={40} height={40} className="object-contain" />
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
@@ -415,7 +416,7 @@ export function ChatWindow({
                   >
                     {/* Logo avatar */}
                     <div className="flex-shrink-0 size-9 rounded-full bg-gradient-to-br from-fuchsia-50 to-purple-50 border border-fuchsia-100 flex items-center justify-center shadow-sm mt-0.5">
-                      <img src="/CortexLogo.png" alt="Cortex" className="h-5 w-auto object-contain" />
+                      <Image src="/CortexLogo.png" alt="Cortex" width={20} height={20} className="object-contain" />
                     </div>
 
                     <div className="flex-1 min-w-0 space-y-3">

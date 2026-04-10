@@ -10,7 +10,12 @@ export default async function LandingPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isLoggedIn = !!user;
-  const avatarUrl = user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email || 'User'}&background=random`;
+  const avatarUrl = user?.user_metadata?.avatar_url || undefined;
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "User";
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950 overflow-hidden font-sans relative selection:bg-fuchsia-200">
@@ -35,8 +40,7 @@ export default async function LandingPage() {
         />
       </div>
 
-      {/* 2. Pass the auth state to your components */}
-      <Navbar isLoggedIn={isLoggedIn} avatarUrl={avatarUrl} />
+      <Navbar isLoggedIn={isLoggedIn} avatarUrl={avatarUrl} userName={userName} />
       <Hero isLoggedIn={isLoggedIn} />
       <Features />
       

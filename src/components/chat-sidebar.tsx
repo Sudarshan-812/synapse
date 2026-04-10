@@ -52,19 +52,14 @@ export function ChatSidebar({
   return (
     <aside className="flex flex-col h-full w-64 bg-white/80 backdrop-blur-xl border-r border-zinc-100 flex-shrink-0">
 
-      {/* Brand */}
-      <div className="px-5 py-5 border-b border-zinc-100">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <img src="/CortexLogo.png" alt="Cortex" className="h-7 w-auto object-contain" />
-          <div>
-            <p className="text-[13.5px] font-bold tracking-tight text-zinc-950">Cortex</p>
-            <p className="text-[11px] text-zinc-400 truncate leading-none mt-0.5">{workspaceName}</p>
-          </div>
-        </Link>
+      {/* Workspace label */}
+      <div className="px-5 py-3 border-b border-zinc-100">
+        <p className="text-[10.5px] font-bold text-zinc-400 uppercase tracking-widest">Workspace</p>
+        <p className="text-[13px] font-semibold text-zinc-800 truncate mt-0.5">{workspaceName}</p>
       </div>
 
       {/* New Chat */}
-      <div className="px-3 pt-4 pb-2">
+      <div className="px-3 pt-3 pb-2">
         <button
           onClick={handleNewChat}
           disabled={creating}
@@ -114,7 +109,7 @@ export function ChatSidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-zinc-100">
+      <div className="p-3 border-t border-zinc-100 space-y-0.5">
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"

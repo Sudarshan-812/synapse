@@ -1,11 +1,16 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UploadZone } from "@/components/upload-zone";
-import { FileText, Layers, Search, LogOut, ChevronRight } from "lucide-react";
+import { Navbar } from "@/components/landing/Navbar";
+import {
+  FileText, Layers, Search, ChevronRight,
+  Database, Zap, Clock,
+} from "lucide-react";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -13,11 +18,27 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export default async function Dashboard() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const avatarUrl = user.user_metadata?.avatar_url || undefined;
+  const userName =
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email?.split("@")[0] ||
+    "User";
 
   const { data: workspace } = await supabase
     .from("workspaces")
@@ -51,41 +72,43 @@ export default async function Dashboard() {
 
   if (!workspace) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans selection:bg-fuchsia-200 relative overflow-hidden">
-        {/* Subtle radial glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-[radial-gradient(ellipse_at_top,_#fdf4ff_0%,_transparent_70%)] pointer-events-none" />
+      <>
+        <Navbar isLoggedIn avatarUrl={avatarUrl} userName={userName} />
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans selection:bg-fuchsia-200 relative overflow-hidden pt-16">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-[radial-gradient(ellipse_at_top,_#fdf4ff_0%,_transparent_70%)] pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-md px-4">
-          <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-10 shadow-[0_8px_40px_rgba(0,0,0,0.06)]">
-            <div className="mb-6">
-              <img src="/CortexLogo.png" alt="Cortex" className="h-10 w-auto object-contain" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-950 mb-1">Initialize Cortex</h1>
-            <p className="text-zinc-500 text-sm mb-8">Set up your secure enterprise knowledge base.</p>
-
-            <form action={createWorkspace} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="workspaceName" className="text-sm font-medium text-zinc-700">
-                  Workspace Name
-                </Label>
-                <Input
-                  name="workspaceName"
-                  id="workspaceName"
-                  placeholder="e.g., Engineering Architecture"
-                  required
-                  className="h-11 bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-fuchsia-500 focus-visible:border-fuchsia-500 rounded-xl shadow-sm"
-                />
+          <div className="relative z-10 w-full max-w-md px-4">
+            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-10 shadow-[0_8px_40px_rgba(0,0,0,0.06)]">
+              <div className="mb-6">
+                <Image src="/CortexLogo.png" alt="Cortex" width={40} height={40} className="object-contain" />
               </div>
-              <Button
-                type="submit"
-                className="w-full h-11 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl font-semibold transition-colors"
-              >
-                Deploy Workspace
-              </Button>
-            </form>
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-950 mb-1">Initialize Cortex</h1>
+              <p className="text-zinc-500 text-sm mb-8">Set up your secure enterprise knowledge base.</p>
+
+              <form action={createWorkspace} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="workspaceName" className="text-sm font-medium text-zinc-700">
+                    Workspace Name
+                  </Label>
+                  <Input
+                    name="workspaceName"
+                    id="workspaceName"
+                    placeholder="e.g., Engineering Architecture"
+                    required
+                    className="h-11 bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-fuchsia-500 focus-visible:border-fuchsia-500 rounded-xl shadow-sm"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl font-semibold transition-colors"
+                >
+                  Deploy Workspace
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -105,141 +128,193 @@ export default async function Dashboard() {
         .in("document_id", docIds)
     : { count: 0 };
 
+  const totalSize = documents?.reduce((sum, d) => sum + (d.size_bytes ?? 0), 0) ?? 0;
+
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950 font-sans selection:bg-fuchsia-200 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 text-zinc-950 font-sans selection:bg-fuchsia-200">
 
-      {/* Top radial glow — matches landing page aurora feel */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-[radial-gradient(ellipse_at_top,_#fdf4ff_0%,_transparent_65%)] pointer-events-none" />
+      {/* Fixed Navbar */}
+      <Navbar isLoggedIn avatarUrl={avatarUrl} userName={userName} />
 
-      <div className="max-w-6xl mx-auto px-6 py-10 lg:py-14 relative z-10">
+      {/* Subtle top gradient */}
+      <div className="fixed top-0 inset-x-0 h-[360px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,_#fdf4ff_0%,_transparent_100%)] pointer-events-none z-0" />
 
-        {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-16">
+
+        {/* ── Page Header ─────────────────────────────────────────── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-10">
           <div>
-            {/* Status badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-zinc-200/80 shadow-sm mb-4">
-              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-bold tracking-widest text-zinc-700 uppercase">System Online</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 backdrop-blur-md border border-zinc-200/70 shadow-sm mb-3">
+              <span className="flex size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-bold tracking-widest text-zinc-600 uppercase">System Online</span>
             </div>
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-zinc-950">{workspace.name}</h1>
-            <p className="mt-2 text-sm text-zinc-500 flex items-center gap-2">
-              <span className="font-mono text-xs bg-white px-2 py-1 rounded-lg border border-zinc-200 shadow-sm text-zinc-600">
-                {user.email}
-              </span>
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-950">{workspace.name}</h1>
+            <p className="mt-1.5 text-sm text-zinc-500 font-mono">{user.email}</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button asChild className="h-10 bg-zinc-950 hover:bg-zinc-800 text-white rounded-full px-5 text-[13.5px] font-semibold shadow-sm transition-colors">
-              <Link href="/chat">
-                <Search className="h-4 w-4 mr-2" />
-                Query Knowledge Base
-              </Link>
-            </Button>
-            <form action={async () => {
-              "use server";
-              const supabase = await createClient();
-              await supabase.auth.signOut();
-              redirect("/login");
-            }}>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 rounded-full bg-white/60 backdrop-blur-md border-zinc-200 hover:bg-white text-zinc-500 hover:text-zinc-900 shadow-sm transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
+          <Button
+            asChild
+            className="h-10 bg-zinc-950 hover:bg-zinc-800 text-white rounded-full px-5 text-[13.5px] font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md self-start md:self-auto"
+          >
+            <Link href="/chat">
+              <Search className="h-4 w-4 mr-2" />
+              Query Knowledge Base
+            </Link>
+          </Button>
         </div>
 
-        {/* ── Bento Grid ──────────────────────────────────────────────────── */}
+        {/* ── Stat Strip ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            {
+              icon: FileText,
+              label: "Documents",
+              value: docCount ?? 0,
+              sub: "indexed files",
+              color: "text-violet-500",
+              bg: "bg-violet-50",
+              border: "border-violet-100",
+            },
+            {
+              icon: Layers,
+              label: "Embeddings",
+              value: chunkCount ?? 0,
+              sub: "vector chunks",
+              color: "text-fuchsia-500",
+              bg: "bg-fuchsia-50",
+              border: "border-fuchsia-100",
+            },
+            {
+              icon: Database,
+              label: "Storage",
+              value: formatBytes(totalSize),
+              sub: "total ingested",
+              color: "text-blue-500",
+              bg: "bg-blue-50",
+              border: "border-blue-100",
+            },
+            {
+              icon: Zap,
+              label: "Pipeline",
+              value: "Active",
+              sub: "RAG + re-ranking",
+              color: "text-emerald-500",
+              bg: "bg-emerald-50",
+              border: "border-emerald-100",
+            },
+          ].map(({ icon: Icon, label, value, sub, color, bg, border }) => (
+            <div
+              key={label}
+              className="bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl p-5 hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <div className={`size-9 rounded-xl ${bg} border ${border} flex items-center justify-center mb-4`}>
+                <Icon className={`size-4 ${color}`} />
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-zinc-950">{value}</div>
+              <div className="text-[11px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Main bento: Upload + recent docs ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
-          {/* Stats column */}
-          <div className="lg:col-span-1 space-y-5">
-
-            {/* Doc count */}
-            <div className="relative overflow-hidden rounded-[1.75rem] p-7 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 group transition-all duration-300 hover:shadow-xl hover:shadow-zinc-900/5">
-              <div className="absolute z-[-1] -top-6 -right-6 h-12 w-12 rounded-full bg-zinc-950 scale-100 origin-center transition-transform duration-[1200ms] ease-in-out group-hover:scale-[30]" />
-              <div className="size-10 rounded-xl bg-white border border-zinc-200/80 flex items-center justify-center mb-5 group-hover:bg-zinc-800 group-hover:border-zinc-700 transition-colors duration-[800ms]">
-                <FileText className="h-5 w-5 text-zinc-950 group-hover:text-white transition-colors duration-[800ms]" />
-              </div>
-              <div className="text-4xl font-bold tracking-tight text-zinc-950 group-hover:text-white transition-colors duration-[800ms]">
-                {docCount ?? 0}
-              </div>
-              <p className="text-xs font-semibold text-zinc-500 mt-1.5 group-hover:text-zinc-300 transition-colors duration-[800ms]">
-                Indexed Documents
-              </p>
-            </div>
-
-            {/* Chunk count */}
-            <div className="relative overflow-hidden rounded-[1.75rem] p-7 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 group transition-all duration-300 hover:shadow-xl hover:shadow-zinc-900/5">
-              <div className="absolute z-[-1] -top-6 -right-6 h-12 w-12 rounded-full bg-zinc-950 scale-100 origin-center transition-transform duration-[1200ms] ease-in-out group-hover:scale-[30]" />
-              <div className="size-10 rounded-xl bg-white border border-zinc-200/80 flex items-center justify-center mb-5 group-hover:bg-zinc-800 group-hover:border-zinc-700 transition-colors duration-[800ms]">
-                <Layers className="h-5 w-5 text-zinc-950 group-hover:text-white transition-colors duration-[800ms]" />
-              </div>
-              <div className="text-4xl font-bold tracking-tight text-zinc-950 group-hover:text-white transition-colors duration-[800ms]">
-                {chunkCount ?? 0}
-              </div>
-              <p className="text-xs font-semibold text-zinc-500 mt-1.5 group-hover:text-zinc-300 transition-colors duration-[800ms]">
-                Vector Embeddings
-              </p>
-            </div>
-          </div>
-
-          {/* Upload Zone */}
+          {/* Upload zone — wide */}
           <div className="lg:col-span-2">
-            <div className="h-full relative overflow-hidden rounded-[1.75rem] bg-white/40 backdrop-blur-2xl border border-zinc-200/60 flex flex-col">
-              <div className="px-8 pt-7 pb-4 border-b border-zinc-100/80">
-                <h2 className="text-base font-bold text-zinc-950 tracking-tight">Ingest Data</h2>
-                <p className="text-sm text-zinc-500 mt-1">
-                  Drop PDFs here. The pipeline extracts, chunks, and embeds automatically.
+            <div className="h-full bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl flex flex-col overflow-hidden">
+              <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
+                <h2 className="text-[14px] font-bold text-zinc-950">Ingest Data</h2>
+                <p className="text-[13px] text-zinc-500 mt-0.5 leading-relaxed">
+                  Drop PDFs here — the pipeline chunks, embeds, and indexes automatically.
                 </p>
               </div>
-              <div className="flex-1 p-6">
+              <div className="flex-1 p-5">
                 <UploadZone workspaceId={workspace.id} />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Document List ────────────────────────────────────────────────── */}
-        {documents && documents.length > 0 && (
-          <div className="relative overflow-hidden rounded-[1.75rem] bg-white/40 backdrop-blur-2xl border border-zinc-200/60">
-            {/* Header */}
-            <div className="px-7 py-5 border-b border-zinc-100/80 flex items-center justify-between">
-              <h2 className="text-xs font-bold tracking-widest text-zinc-500 uppercase">Data Repository</h2>
-              <span className="text-xs font-semibold text-zinc-400">{docCount} file{docCount !== 1 ? "s" : ""}</span>
+          {/* Quick actions */}
+          <div className="space-y-4">
+            <div className="bg-zinc-950 text-white rounded-2xl p-6 flex flex-col gap-4">
+              <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Search className="size-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-[14px] font-bold">Query Knowledge Base</h3>
+                <p className="text-[12.5px] text-zinc-400 mt-0.5 leading-relaxed">
+                  Ask questions across all your indexed documents.
+                </p>
+              </div>
+              <Link
+                href="/chat"
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/80 hover:text-white transition-colors group"
+              >
+                Open Chat
+                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
 
-            <div className="divide-y divide-zinc-100/80">
+            <div className="bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl p-5 flex flex-col gap-3">
+              <div className="size-9 rounded-xl bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center">
+                <Zap className="size-4 text-fuchsia-500" />
+              </div>
+              <div>
+                <h3 className="text-[13.5px] font-bold text-zinc-950">Pipeline Status</h3>
+                <p className="text-[12px] text-zinc-500 mt-0.5">pgvector · Gemini · BM25</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[12px] font-semibold text-emerald-600">All systems operational</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Document List ────────────────────────────────────────── */}
+        {documents && documents.length > 0 && (
+          <div className="bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl overflow-hidden">
+
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-[14px] font-bold text-zinc-950">Data Repository</h2>
+                <p className="text-[12px] text-zinc-400 mt-0.5">{docCount} file{docCount !== 1 ? "s" : ""} indexed</p>
+              </div>
+              <Link
+                href="/chat"
+                className="h-8 px-4 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-zinc-600 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200 rounded-full transition-colors"
+              >
+                <Search className="size-3.5" />
+                Query All
+              </Link>
+            </div>
+
+            <div className="divide-y divide-zinc-100">
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between px-7 py-4 hover:bg-white/50 transition-colors group cursor-default"
+                  className="flex items-center justify-between px-6 py-3.5 hover:bg-zinc-50/60 transition-colors group cursor-default"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-xl bg-white/80 border border-zinc-200/60 flex items-center justify-center group-hover:border-fuchsia-200 group-hover:bg-fuchsia-50 transition-all">
-                      <FileText className="h-4.5 w-4.5 text-zinc-400 group-hover:text-fuchsia-500 transition-colors" />
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="size-9 rounded-xl bg-white border border-zinc-200/60 flex items-center justify-center flex-shrink-0 group-hover:border-fuchsia-200 group-hover:bg-fuchsia-50 transition-all">
+                      <FileText className="size-4 text-zinc-400 group-hover:text-fuchsia-500 transition-colors" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-zinc-900 truncate">{doc.name}</p>
+                      <p className="text-[13.5px] font-semibold text-zinc-900 truncate">{doc.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-zinc-400 font-medium">{formatBytes(doc.size_bytes)}</span>
-                        <span className="size-1 rounded-full bg-zinc-300" />
-                        <span className="text-xs text-zinc-400 font-medium">
-                          {new Date(doc.created_at).toLocaleDateString()}
-                        </span>
+                        <span className="text-[11.5px] text-zinc-400">{formatBytes(doc.size_bytes)}</span>
+                        <span className="size-0.5 rounded-full bg-zinc-300" />
+                        <Clock className="size-2.5 text-zinc-300" />
+                        <span className="text-[11.5px] text-zinc-400">{timeAgo(doc.created_at)}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-4">
+                    <span className="text-[10.5px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">
                       Indexed
                     </span>
-                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                    <ChevronRight className="size-4 text-zinc-300" />
                   </div>
                 </div>
               ))}
