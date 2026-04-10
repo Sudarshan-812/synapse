@@ -1,9 +1,11 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import SoftAurora from "@/components/SoftAurora";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
+// Client wrapper that defers WebGL init via next/dynamic ssr:false
+// (ssr:false cannot be used directly in a Server Component)
+import { AuroraBackground } from "@/components/AuroraBackground";
 
 export default async function LandingPage({
   searchParams,
@@ -32,9 +34,9 @@ export default async function LandingPage({
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950 overflow-hidden font-sans relative selection:bg-fuchsia-200">
 
-      {/* Soft Aurora Background */}
+      {/* Aurora: loaded after hydration — zero TBT contribution */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <SoftAurora
+        <AuroraBackground
           speed={0.5}
           scale={1.4}
           brightness={0.9}
@@ -47,8 +49,6 @@ export default async function LandingPage({
           octaveDecay={0.15}
           layerOffset={0.2}
           colorSpeed={0.8}
-          enableMouseInteraction
-          mouseInfluence={0.2}
         />
       </div>
 

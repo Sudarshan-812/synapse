@@ -14,7 +14,7 @@ export function Features() {
         className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
         {/* Card 1 (Wide) */}
-        <div className="md:col-span-2 relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-all duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
+        <div className="md:col-span-2 relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
           <div className="absolute z-[-1] -top-8 -right-8 h-16 w-16 rounded-full bg-zinc-950 transform scale-100 origin-center transition-transform duration-[1200ms] ease-in-out group-hover:scale-[80]" />
           <div className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center bg-zinc-950 rounded-bl-[2rem] overflow-hidden z-10 border-b border-l border-zinc-800">
             <ArrowUpRight className="size-5 text-white mr-[-2px] mt-[-2px]" />
@@ -34,7 +34,7 @@ export function Features() {
         </div>
 
         {/* Card 2 (Square) */}
-        <div className="relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-all duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
+        <div className="relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
           <div className="absolute z-[-1] -top-8 -right-8 h-16 w-16 rounded-full bg-zinc-950 transform scale-100 origin-center transition-transform duration-[1200ms] ease-in-out group-hover:scale-[50]" />
           <div className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center bg-zinc-950 rounded-bl-[2rem] overflow-hidden z-10 border-b border-l border-zinc-800">
             <ArrowUpRight className="size-5 text-white mr-[-2px] mt-[-2px]" />
@@ -54,7 +54,7 @@ export function Features() {
         </div>
 
         {/* Card 3 (Square) */}
-        <div className="relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-all duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
+        <div className="relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
           <div className="absolute z-[-1] -top-8 -right-8 h-16 w-16 rounded-full bg-zinc-950 transform scale-100 origin-center transition-transform duration-[1200ms] ease-in-out group-hover:scale-[50]" />
           <div className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center bg-zinc-950 rounded-bl-[2rem] overflow-hidden z-10 border-b border-l border-zinc-800">
             <ArrowUpRight className="size-5 text-white mr-[-2px] mt-[-2px]" />
@@ -74,7 +74,7 @@ export function Features() {
         </div>
 
         {/* Card 4 (Wide) */}
-        <div className="md:col-span-2 relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-all duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
+        <div className="md:col-span-2 relative block overflow-hidden rounded-[2rem] p-8 md:p-10 bg-white/40 backdrop-blur-2xl border border-zinc-200/60 z-0 group transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:shadow-zinc-900/5 hover:-translate-y-1">
           <div className="absolute z-[-1] -top-8 -right-8 h-16 w-16 rounded-full bg-zinc-950 transform scale-100 origin-center transition-transform duration-[1200ms] ease-in-out group-hover:scale-[80]" />
           <div className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center bg-zinc-950 rounded-bl-[2rem] overflow-hidden z-10 border-b border-l border-zinc-800">
             <ArrowUpRight className="size-5 text-white mr-[-2px] mt-[-2px]" />

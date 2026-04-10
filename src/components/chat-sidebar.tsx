@@ -105,7 +105,7 @@ export function ChatSidebar({
                 onClick={() => setWsOpen(v => !v)}
                 className="w-full text-left group"
               >
-                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Workspace</p>
+                <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Workspace</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <p className="text-[13px] font-semibold text-zinc-800 truncate">{workspaceName}</p>
                   <ChevronDown className={`size-3 text-zinc-400 flex-shrink-0 transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
@@ -113,7 +113,7 @@ export function ChatSidebar({
               </button>
             ) : (
               <div>
-                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Workspace</p>
+                <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Workspace</p>
                 <p className="text-[13px] font-semibold text-zinc-800 truncate mt-0.5">{workspaceName}</p>
               </div>
             )}

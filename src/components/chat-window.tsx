@@ -186,13 +186,14 @@ function ThinkingIndicator({ tools }: { tools: ToolEvent[] }) {
       </div>
 
       {/* Animated dots when thinking (no tools yet) */}
+      {/* Only animate transform (y) — backgroundColor removed to avoid paint on every rAF tick */}
       {!isSearching && !isDone && (
         <div className="flex gap-1 items-center">
           {[0, 1, 2].map(j => (
             <motion.span
               key={j}
-              className="size-1 rounded-full bg-zinc-300 inline-block"
-              animate={{ y: [0, -4, 0], backgroundColor: ['#d4d4d8', '#d946ef', '#d4d4d8'] }}
+              className="size-1 rounded-full bg-fuchsia-400 inline-block"
+              animate={{ y: [0, -4, 0] }}
               transition={{ duration: 0.9, repeat: Infinity, delay: j * 0.2 }}
             />
           ))}
@@ -443,13 +444,16 @@ export function ChatWindow({
                       </AnimatePresence>
 
                       {/* Tool done chips (while streaming) */}
+                      {/* height animation removed — animating height forces layout reflow.
+                          opacity-only is GPU-composited (no layout, no paint). */}
                       <AnimatePresence>
                         {isLastAssistant && activeTools.some(t => t.status === 'done') && msg.content !== '' && (
                           <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="flex flex-wrap gap-1.5 overflow-hidden"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex flex-wrap gap-1.5"
                           >
                             {activeTools.filter(t => t.status === 'done').map(t => (
                               <div key={t.name} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-[11.5px] font-medium text-emerald-700">
@@ -493,15 +497,18 @@ export function ChatWindow({
       {/* ── Input bar — Gemini style ── */}
       <div className="flex-shrink-0 px-6 pb-6 pt-2">
         <div className="max-w-[760px] mx-auto">
-          <motion.div
-            animate={
-              focused
-                ? { boxShadow: '0 0 0 2px rgba(192,38,211,0.12), 0 4px_32px rgba(0,0,0,0.07)' }
-                : { boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }
-            }
+          {/* CSS transition instead of Framer Motion boxShadow animation —
+               box-shadow is a paint operation; animating it via JS (rAF) on every
+               frame causes unnecessary paint work. CSS transitions let the browser
+               handle it efficiently off the critical path. */}
+          <div
             className={`
-              relative bg-zinc-50 border rounded-3xl transition-colors duration-200 overflow-hidden
-              ${focused ? 'border-zinc-300 bg-white' : 'border-zinc-200'}
+              relative bg-zinc-50 border rounded-3xl overflow-hidden
+              transition-[border-color,background-color,box-shadow] duration-200
+              ${focused
+                ? 'border-zinc-300 bg-white shadow-[0_0_0_2px_rgba(192,38,211,0.12),_0_4px_32px_rgba(0,0,0,0.07)]'
+                : 'border-zinc-200 shadow-[0_2px_16px_rgba(0,0,0,0.05)]'
+              }
             `}
           >
             <textarea
@@ -515,7 +522,7 @@ export function ChatWindow({
               placeholder="Ask Cortex anything about your documents…"
               disabled={loading}
               autoFocus
-              className="w-full resize-none bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-400 outline-none leading-relaxed px-5 pt-4 pb-3 disabled:opacity-60 max-h-[180px] font-[inherit]"
+              className="w-full resize-none bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-500 outline-none leading-relaxed px-5 pt-4 pb-3 disabled:opacity-60 max-h-[180px] font-[inherit]"
               style={{ height: 'auto' }}
             />
 
@@ -550,7 +557,7 @@ export function ChatWindow({
                 </motion.button>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           <p className="text-center text-[11px] text-zinc-400 mt-2.5 font-medium">
             Cortex uses{' '}
@@ -591,14 +598,17 @@ function SourceCitations({ sources }: { sources: Source[] }) {
         </motion.span>
       </button>
 
+      {/* scaleY instead of height/marginTop — height:auto forces layout recalculation
+           on every animation frame. scaleY is a transform and is GPU-composited. */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-            animate={{ opacity: 1, height: 'auto', marginTop: 10 }}
-            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            exit={{ opacity: 0, scaleY: 0 }}
+            style={{ transformOrigin: 'top' }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="overflow-hidden"
+            className="overflow-hidden mt-2.5"
           >
             <div className="grid grid-cols-1 gap-2">
               {sources.map((src, i) => (

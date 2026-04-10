@@ -138,7 +138,8 @@ export function Hero({ isLoggedIn = false }: HeroProps) {
                 </div>
               ))}
               <div className="mt-auto pt-2 border-t border-zinc-100">
-                <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-400 cursor-default">
+                {/* text-zinc-500 — passes WCAG AA contrast against white/zinc-50 bg */}
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-500 cursor-default">
                   <Plus className="size-3.5" />
                   <span className="text-[11px] font-medium">Upload document</span>
                 </div>
@@ -188,7 +189,7 @@ export function Hero({ isLoggedIn = false }: HeroProps) {
               {/* Input bar */}
               <div className="px-4 pb-4">
                 <div className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-zinc-200/80 rounded-xl shadow-sm">
-                  <span className="flex-1 text-[12px] text-zinc-400">Ask a question about your documents…</span>
+                  <span className="flex-1 text-[12px] text-zinc-500">Ask a question about your documents…</span>
                   <div className="h-6 w-6 rounded-lg bg-zinc-950 flex items-center justify-center flex-shrink-0">
                     <ArrowRight className="size-3 text-white" />
                   </div>
