@@ -1,10 +1,22 @@
 import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 import SoftAurora from "@/components/SoftAurora";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 
-export default async function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; error?: string }>;
+}) {
+  // If Supabase redirected the OAuth code here instead of /auth/callback,
+  // forward it so the session gets properly exchanged.
+  const params = await searchParams;
+  if (params.code) {
+    redirect(`/auth/callback?code=${params.code}`);
+  }
+
   // 1. Fetch Auth State Server-Side
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
