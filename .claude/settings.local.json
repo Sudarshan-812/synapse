@@ -10,7 +10,14 @@
       "Bash(npx tsc:*)",
       "Bash(npx next:*)",
       "Bash(grep -E \"^\\\\s*\\(//|/\\\\*\\)\")",
-      "Bash(grep -n \"//.*replace\\\\|//.*collapse\\\\|//.*trim\")"
+      "Bash(grep -n \"//.*replace\\\\|//.*collapse\\\\|//.*trim\")",
+      "Bash(grep -E \"\\\\.\\(tsx|ts|css|scss|json\\)$\")",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(cd /tmp)",
+      "Bash(mkdir -p design_extract)",
+      "Bash(gunzip -c \"C:/Users/mrsud/.claude/projects/C--Users-mrsud-OneDrive-Desktop-Cortex-cortex/c2755f11-4acf-4358-93b0-ed0b826dfd1d/tool-results/webfetch-1776509645472-kgpbbc.bin\")",
+      "Bash(tar x *)",
+      "Bash(python3 *)"
     ]
   }
 }

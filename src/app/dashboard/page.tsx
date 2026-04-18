@@ -6,33 +6,25 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { UploadZone } from "@/components/upload-zone"
-import { Navbar } from "@/components/landing/Navbar"
-import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher"
-import { DocumentList } from "@/components/DocumentList"
-import {
-  FileText, Layers, Search, ChevronRight,
-  Database, Zap,
-} from "lucide-react"
+import { Search, UploadCloud, ChevronRight, Sparkles } from "lucide-react"
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+import { DashboardNavbar } from "@/components/dashboard/DashboardNavbar"
+import { MetricsGrid }     from "@/components/dashboard/MetricsGrid"
+import { PipelineViz }     from "@/components/dashboard/PipelineViz"
+import { ChatDemo }        from "@/components/dashboard/ChatDemo"
+import { UploadZoneNew }   from "@/components/dashboard/UploadZoneNew"
+import { SystemStatus }    from "@/components/dashboard/SystemStatus"
+import { AgentsCard }      from "@/components/dashboard/AgentsCard"
+import { DocumentTable }   from "@/components/dashboard/DocumentTable"
 
 export default async function Dashboard() {
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
   const avatarUrl = user.user_metadata?.avatar_url || undefined
-  const userName =
-    user.user_metadata?.full_name ||
-    user.user_metadata?.name ||
-    user.email?.split("@")[0] ||
-    "User"
+  const userName  = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "User"
+  const userEmail = user.email ?? ""
 
   const { data: workspaces } = await supabase
     .from("workspaces")
@@ -41,10 +33,10 @@ export default async function Dashboard() {
     .order("created_at", { ascending: true })
 
   const cookieStore = await cookies()
-  const activeId = cookieStore.get("cortex_active_workspace")?.value
-  const workspace =
-    workspaces?.find(w => w.id === activeId) ?? workspaces?.[0] ?? null
+  const activeId    = cookieStore.get("cortex_active_workspace")?.value
+  const workspace   = workspaces?.find(w => w.id === activeId) ?? workspaces?.[0] ?? null
 
+  /* ── No workspace ─────────────────────────────────────────────── */
   if (!workspace || !workspaces || workspaces.length === 0) {
     async function initWorkspace(formData: FormData) {
       "use server"
@@ -52,70 +44,45 @@ export default async function Dashboard() {
       const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       const { data: newWorkspace, error } = await supabase
-        .from("workspaces")
-        .insert({ name, owner_id: user.id })
-        .select()
-        .single()
-
+        .from("workspaces").insert({ name, owner_id: user.id }).select().single()
       if (error) return
-
       await supabase.from("workspace_members").insert({
-        workspace_id: newWorkspace.id,
-        user_id: user.id,
-        role: "admin",
+        workspace_id: newWorkspace.id, user_id: user.id, role: "admin",
       })
-
       const cookieStore = await cookies()
       cookieStore.set("cortex_active_workspace", newWorkspace.id, {
-        maxAge: 60 * 60 * 24 * 30,
-        path: "/",
-        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30, path: "/", sameSite: "lax",
       })
-
       redirect("/dashboard")
     }
-
     return (
-      <>
-        <Navbar isLoggedIn avatarUrl={avatarUrl} userName={userName} />
-        <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans selection:bg-fuchsia-200 relative overflow-hidden pt-16">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-[radial-gradient(ellipse_at_top,_#fdf4ff_0%,_transparent_70%)] pointer-events-none" />
-          <div className="relative z-10 w-full max-w-md px-4">
-            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-10 shadow-[0_8px_40px_rgba(0,0,0,0.06)]">
-              <div className="mb-6">
-                <Image src="/CortexLogo.png" alt="Cortex" width={40} height={40} className="object-contain" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-950 mb-1">Initialize Cortex</h1>
-              <p className="text-zinc-500 text-sm mb-8">Set up your secure enterprise knowledge base.</p>
-              <form action={initWorkspace} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="workspaceName" className="text-sm font-medium text-zinc-700">
-                    Workspace Name
-                  </Label>
-                  <Input
-                    name="workspaceName"
-                    id="workspaceName"
-                    placeholder="e.g., Engineering Architecture"
-                    required
-                    className="h-11 bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-fuchsia-500 focus-visible:border-fuchsia-500 rounded-xl shadow-sm"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl font-semibold transition-colors"
-                >
-                  Deploy Workspace
-                </Button>
-              </form>
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--cx-paper)" }}>
+        <div className="w-full max-w-md px-4">
+          <div className="cx-panel p-10">
+            <div className="mb-6">
+              <Image src="/CortexLogo.png" alt="Cortex" width={40} height={40} className="object-contain" />
             </div>
+            <h1 className="text-2xl font-semibold tracking-tight mb-1" style={{ color: "var(--cx-ink)" }}>
+              Initialize Cortex
+            </h1>
+            <p className="text-sm mb-8" style={{ color: "var(--cx-mute-1)" }}>
+              Set up your secure enterprise knowledge base.
+            </p>
+            <form action={initWorkspace} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="workspaceName" className="text-sm font-medium">Workspace Name</Label>
+                <Input name="workspaceName" id="workspaceName" placeholder="e.g., Acme Legal Docs" required className="h-11 rounded-xl" />
+              </div>
+              <Button type="submit" className="w-full h-11 rounded-xl font-semibold">Deploy Workspace</Button>
+            </form>
           </div>
         </div>
-      </>
+      </div>
     )
   }
 
+  /* ── Fetch data ───────────────────────────────────────────────── */
   const { data: documents, count: docCount } = await supabase
     .from("documents")
     .select("id, name, size_bytes, created_at", { count: "exact" })
@@ -124,156 +91,180 @@ export default async function Dashboard() {
 
   const docIds = documents?.map(d => d.id) ?? []
   const { count: chunkCount } = docIds.length > 0
-    ? await supabase
-        .from("document_chunks")
-        .select("*", { count: "exact", head: true })
-        .in("document_id", docIds)
+    ? await supabase.from("document_chunks").select("*", { count: "exact", head: true }).in("document_id", docIds)
     : { count: 0 }
 
-  const totalSize = documents?.reduce((sum, d) => sum + (d.size_bytes ?? 0), 0) ?? 0
+  const totalBytes = documents?.reduce((s, d) => s + (d.size_bytes ?? 0), 0) ?? 0
+  const storageMB  = Math.round(totalBytes / (1024 * 1024))
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950 font-sans selection:bg-fuchsia-200">
-      <Navbar isLoggedIn avatarUrl={avatarUrl} userName={userName} />
-      <div className="fixed top-0 inset-x-0 h-[360px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,_#fdf4ff_0%,_transparent_100%)] pointer-events-none z-0" />
+    <div className="min-h-screen cx-grain" style={{ background: "var(--cx-paper)", color: "var(--cx-ink)" }}>
+      <DashboardNavbar
+        workspace={workspace}
+        workspaces={workspaces}
+        user={{ name: userName, email: userEmail, avatarUrl }}
+      />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-16">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 mb-8">
+      <div className="max-w-[1240px] mx-auto px-6 pt-[88px] pb-16">
+
+        {/* Editorial header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 backdrop-blur-md border border-zinc-200/70 shadow-sm mb-3">
-              <span className="flex size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-bold tracking-widest text-zinc-600 uppercase">System Online</span>
+            <div className="flex items-center gap-2.5 mb-5">
+              <span className="cx-dot cx-pulse-dot" style={{ background: "var(--cx-ok)" }} />
+              <span className="cx-rule-label">Workspace · owner</span>
+              <span className="cx-hdiv w-10 hidden sm:block" />
+              <span className="cx-num text-[10.5px] hidden sm:inline" style={{ color: "var(--cx-mute-2)" }}>
+                ws_{workspace.id.slice(0, 8)}
+              </span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-950">{workspace.name}</h1>
-            <p className="mt-1.5 text-sm text-zinc-500 font-mono">{user.email}</p>
-          </div>
-          <Button
-            asChild
-            className="h-10 bg-zinc-950 hover:bg-zinc-800 text-white rounded-full px-5 text-[13.5px] font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md self-start md:self-auto"
-          >
-            <Link href="/chat">
-              <Search className="h-4 w-4 mr-2" />
-              Query Knowledge Base
-            </Link>
-          </Button>
-        </div>
-
-        <WorkspaceSwitcher workspaces={workspaces} activeId={workspace.id} />
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[
-            {
-              icon: FileText,
-              label: "Documents",
-              value: docCount ?? 0,
-              sub: "indexed files",
-              color: "text-violet-500",
-              bg: "bg-violet-50",
-              border: "border-violet-100",
-            },
-            {
-              icon: Layers,
-              label: "Embeddings",
-              value: chunkCount ?? 0,
-              sub: "vector chunks",
-              color: "text-fuchsia-500",
-              bg: "bg-fuchsia-50",
-              border: "border-fuchsia-100",
-            },
-            {
-              icon: Database,
-              label: "Storage",
-              value: formatBytes(totalSize),
-              sub: "total ingested",
-              color: "text-blue-500",
-              bg: "bg-blue-50",
-              border: "border-blue-100",
-            },
-            {
-              icon: Zap,
-              label: "Pipeline",
-              value: "Active",
-              sub: "RAG + re-ranking",
-              color: "text-emerald-500",
-              bg: "bg-emerald-50",
-              border: "border-emerald-100",
-            },
-          ].map(({ icon: Icon, label, value, sub, color, bg, border }) => (
-            <div
-              key={label}
-              className="bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl p-5 hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+            <h1
+              className="text-[44px] md:text-[52px] font-semibold tracking-[-0.03em] leading-[1.02] cx-fade-up"
+              style={{ color: "var(--cx-ink)" }}
             >
-              <div className={`size-9 rounded-xl ${bg} border ${border} flex items-center justify-center mb-4`}>
-                <Icon className={`size-4 ${color}`} />
-              </div>
-              <div className="text-2xl font-bold tracking-tight text-zinc-950">{value}</div>
-              <div className="text-[11px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{sub}</div>
-            </div>
-          ))}
+              {workspace.name}
+              <span className="cx-serif italic font-normal" style={{ color: "var(--cx-mute-1)" }}>.</span>
+            </h1>
+            <p className="mt-3 text-[14px] leading-relaxed" style={{ color: "var(--cx-mute-1)" }}>
+              <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>{docCount ?? 0}</span>{" "}documents,{" "}
+              <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>{(chunkCount ?? 0).toLocaleString()}</span>{" "}embeddings,{" "}
+              and <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>7</span> agents at work.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              className="cx-btn-ghost h-9 px-4 rounded-full text-[12.5px] font-medium flex items-center gap-1.5"
+              style={{ color: "var(--cx-ink-2)" }}
+            >
+              <UploadCloud size={13} /> Upload
+            </button>
+            <Link href="/chat" className="cx-btn-ink h-9 px-4 rounded-full text-[12.5px] font-medium flex items-center gap-1.5">
+              <Search size={13} /> Query knowledge base
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+        {/* Metrics grid */}
+        <MetricsGrid docs={docCount ?? 0} embeddings={chunkCount ?? 0} storageMB={storageMB} />
+
+        {/* RAG pipeline visualization */}
+        <PipelineViz />
+
+        {/* Chat demo + Upload + System status */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
           <div className="lg:col-span-2">
-            <div className="h-full bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl flex flex-col overflow-hidden">
-              <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
-                <h2 className="text-[14px] font-bold text-zinc-950">Ingest Data</h2>
-                <p className="text-[13px] text-zinc-500 mt-0.5 leading-relaxed">
-                  Drop PDFs here — the pipeline chunks, embeds, and indexes automatically.
-                </p>
-              </div>
-              <div className="flex-1 p-5">
-                <UploadZone workspaceId={workspace.id} />
-              </div>
-            </div>
+            <ChatDemo />
           </div>
-
-          <div className="space-y-4">
-            <div className="bg-zinc-950 text-white rounded-2xl p-6 flex flex-col gap-4">
-              <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center">
-                <Search className="size-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold">Query Knowledge Base</h3>
-                <p className="text-[12.5px] text-zinc-400 mt-0.5 leading-relaxed">
-                  Ask questions across all your indexed documents.
-                </p>
-              </div>
-              <Link
-                href="/chat"
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/80 hover:text-white transition-colors group"
-              >
-                Open Chat
-                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl p-5 flex flex-col gap-3">
-              <div className="size-9 rounded-xl bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center">
-                <Zap className="size-4 text-fuchsia-500" />
-              </div>
-              <div>
-                <h3 className="text-[13.5px] font-bold text-zinc-950">Pipeline Status</h3>
-                <p className="text-[12px] text-zinc-500 mt-0.5">pgvector · Gemini · BM25</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[12px] font-semibold text-emerald-600">All systems operational</span>
-              </div>
-            </div>
+          <div className="flex flex-col gap-5">
+            <UploadZoneNew workspaceId={workspace.id} />
+            <SystemStatus />
           </div>
         </div>
 
-        {documents && documents.length > 0 && (
-          <DocumentList documents={documents} />
-        )}
+        {/* Agents + Recent queries + CTA */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+          <AgentsCard />
 
+          <div className="cx-panel p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="cx-rule-label">Recent queries</p>
+              <span className="cx-num text-[10.5px]" style={{ color: "var(--cx-mute-2)" }}>
+                {Math.min(4, docCount ?? 0)}
+              </span>
+            </div>
+            {documents && documents.length > 0 ? (
+              <div className="space-y-0.5 -mx-1.5">
+                {documents.slice(0, 4).map(doc => (
+                  <Link
+                    key={doc.id}
+                    href="/chat"
+                    className="flex items-center gap-2.5 px-1.5 py-2 rounded-md"
+                    style={{ color: "var(--cx-ink-2)" }}
+                  >
+                    <Search size={12} className="flex-shrink-0" style={{ color: "var(--cx-mute-2)" }} />
+                    <span className="text-[12.5px] truncate">
+                      {doc.name.replace(/\.(pdf|docx|doc|txt|md|csv)$/i, "")}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[12.5px]" style={{ color: "var(--cx-mute-2)" }}>No queries yet.</p>
+            )}
+          </div>
+
+          {/* Dark editorial CTA */}
+          <div
+            className="cx-panel p-6 relative overflow-hidden flex flex-col justify-between"
+            style={{
+              background: "linear-gradient(145deg, var(--cx-ink) 0%, #151515 100%)",
+              borderColor: "var(--cx-ink-2)",
+              color: "#f2f0eb",
+            }}
+          >
+            <div
+              className="absolute -top-20 -right-20 size-56 rounded-full pointer-events-none"
+              style={{ background: "radial-gradient(circle, rgba(162,60,122,0.35) 0%, transparent 70%)" }}
+            />
+            <div className="relative z-10">
+              <span
+                className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full border text-[10px] font-medium uppercase tracking-[.18em]"
+                style={{ borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}
+              >
+                <Sparkles size={10} /> New
+              </span>
+              <h3 className="text-[19px] font-semibold tracking-tight mt-4 leading-tight">
+                Spin up a new agent
+                <span className="cx-serif italic font-normal" style={{ color: "#d5a8c2" }}>.</span>
+              </h3>
+              <p className="text-[12.5px] mt-2 leading-relaxed" style={{ color: "rgba(242,240,235,0.55)" }}>
+                Define a goal and tools — Cortex will retrieve, re-rank, and synthesize with citations.
+              </p>
+            </div>
+            <Link
+              href="/chat"
+              className="relative z-10 mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium group"
+              style={{ color: "#f2f0eb" }}
+            >
+              Create agent
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Document table */}
+        {documents && documents.length > 0 && (
+          <DocumentTable documents={documents} storageMB={storageMB} />
+        )}
         {documents?.length === 0 && (
-          <div className="bg-white/60 backdrop-blur-xl border border-zinc-200/60 rounded-2xl p-12 text-center">
-            <FileText className="size-8 text-zinc-300 mx-auto mb-3" />
-            <p className="text-[14px] font-semibold text-zinc-500">No documents yet</p>
-            <p className="text-[12.5px] text-zinc-400 mt-1">Upload files above to start building your knowledge base.</p>
+          <div className="cx-panel p-12 text-center">
+            <p className="text-[14px] font-medium mb-1" style={{ color: "var(--cx-mute-1)" }}>No documents yet</p>
+            <p className="text-[12.5px]" style={{ color: "var(--cx-mute-2)" }}>
+              Upload files above to start building your knowledge base.
+            </p>
           </div>
         )}
+
+        {/* Footer */}
+        <footer
+          className="mt-12 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-3"
+          style={{ borderColor: "var(--cx-line)" }}
+        >
+          <div className="flex items-center gap-2.5">
+            <Image src="/CortexLogo.png" alt="Cortex" width={18} height={18} className="object-contain" />
+            <span className="text-[12px] font-semibold" style={{ color: "var(--cx-ink-2)" }}>Cortex</span>
+            <span className="cx-num text-[10.5px]" style={{ color: "var(--cx-mute-2)" }}>v2.0</span>
+          </div>
+          <div className="flex items-center gap-5 text-[10.5px] font-mono" style={{ color: "var(--cx-mute-2)" }}>
+            <span>pgvector</span>
+            <span>Gemini</span>
+            <span>Supabase</span>
+            <span className="flex items-center gap-1.5">
+              <span className="cx-dot cx-pulse-dot" style={{ background: "var(--cx-ok)" }} />
+              <span>production</span>
+            </span>
+          </div>
+        </footer>
       </div>
     </div>
   )
