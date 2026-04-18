@@ -1,5 +1,7 @@
 'use client'
 
+import { motion } from 'framer-motion'
+
 type Service = { name: string; status: 'operational' | 'degraded' | 'down'; latency: string }
 
 const SERVICES: Service[] = [
@@ -23,16 +25,29 @@ export function SystemStatus() {
         <p className="cx-rule-label">System status</p>
         <span className="cx-num text-[10.5px]" style={{ color: 'var(--cx-mute-2)' }}>99.98%</span>
       </div>
-      <div className="space-y-2 -mx-1">
-        {SERVICES.map(s => (
-          <div key={s.name} className="flex items-center gap-2.5 px-1 py-1">
+
+      <div className="space-y-1 -mx-1">
+        {SERVICES.map((s, i) => (
+          <motion.div
+            key={s.name}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.05 + i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-2.5 px-1 py-1.5 rounded-lg transition-colors duration-150 cursor-default"
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--cx-paper)')}
+            onMouseLeave={e => (e.currentTarget.style.background = '')}
+          >
             <span
               className="cx-dot cx-pulse-dot flex-shrink-0"
               style={{ background: STATUS_COLOR[s.status] }}
             />
-            <span className="flex-1 text-[12px] truncate" style={{ color: 'var(--cx-ink-2)' }}>{s.name}</span>
-            <span className="cx-num text-[10.5px] flex-shrink-0" style={{ color: 'var(--cx-mute-2)' }}>{s.latency}</span>
-          </div>
+            <span className="flex-1 text-[12px] truncate" style={{ color: 'var(--cx-ink-2)' }}>
+              {s.name}
+            </span>
+            <span className="cx-num text-[10.5px] flex-shrink-0" style={{ color: 'var(--cx-mute-2)' }}>
+              {s.latency}
+            </span>
+          </motion.div>
         ))}
       </div>
     </div>

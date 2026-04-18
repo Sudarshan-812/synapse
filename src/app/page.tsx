@@ -5,7 +5,7 @@ import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 import { CTA } from "@/components/landing/CTA";
 import { Footer } from "@/components/landing/Footer";
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { LandingBackground } from "@/components/landing/LandingBackground";
 
 export default async function LandingPage({
   searchParams,
@@ -29,24 +29,8 @@ export default async function LandingPage({
     "User";
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950 overflow-hidden font-sans relative selection:bg-fuchsia-200">
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <AuroraBackground
-          speed={0.5}
-          scale={1.4}
-          brightness={0.9}
-          color1="#f0f0f0"
-          color2="#c026d3"
-          noiseFrequency={2.2}
-          noiseAmplitude={0.8}
-          bandHeight={0.6}
-          bandSpread={1.1}
-          octaveDecay={0.15}
-          layerOffset={0.2}
-          colorSpeed={0.8}
-        />
-      </div>
-
+    <div className="min-h-screen font-sans overflow-hidden" style={{ background: 'var(--cx-paper)', color: 'var(--cx-ink)' }}>
+      <LandingBackground />
       <Navbar isLoggedIn={isLoggedIn} avatarUrl={avatarUrl} userName={userName} />
       <Hero isLoggedIn={isLoggedIn} />
       <Features />

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -147,9 +148,15 @@ export function DashboardNavbar({
               />
             </button>
 
+            <AnimatePresence>
             {open && (
-              <div
-                className="absolute top-[calc(100%+8px)] right-0 w-[300px] cx-panel p-1.5 z-50 cx-fade-up"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+                style={{ transformOrigin: 'top right' }}
+                className="absolute top-[calc(100%+8px)] right-0 w-[300px] cx-panel p-1.5 z-50"
               >
                 {/* User info */}
                 <div className="flex items-center gap-2.5 px-2.5 py-2.5">
@@ -270,8 +277,9 @@ export function DashboardNavbar({
                     <LogOut size={13} /> Sign out
                   </button>
                 </form>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

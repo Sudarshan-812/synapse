@@ -2,7 +2,9 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
+const ease = [0.16, 1, 0.3, 1] as const;
 
 interface CTAProps {
   isLoggedIn?: boolean;
@@ -15,37 +17,55 @@ export function CTA({ isLoggedIn = false }: CTAProps) {
         initial={{ opacity: 0, y: 32 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="relative overflow-hidden rounded-[2rem] bg-zinc-950 px-10 py-14 text-center"
+        transition={{ duration: 0.65, ease }}
+        className="relative overflow-hidden rounded-[2rem] px-10 py-16 text-center"
+        style={{
+          background: 'var(--cx-ink)',
+          boxShadow: '0 24px 80px rgba(10,10,10,0.22), 0 1px 0 rgba(255,255,255,0.05) inset',
+        }}
       >
-        {/* Subtle fuchsia glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(192,38,211,0.18),transparent)] pointer-events-none" />
+        {/* Plum radial glow */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 100%, rgba(122,31,90,0.22), transparent)' }} />
 
-        {/* Dashed orbit ring */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full border border-white/5 border-dashed pointer-events-none" />
+        {/* Decorative dashed ring */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full border border-dashed pointer-events-none"
+          style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] rounded-full border pointer-events-none"
+          style={{ borderColor: 'rgba(255,255,255,0.04)' }} />
 
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm">
-            <Sparkles className="size-3.5 text-fuchsia-400" />
-            <span className="text-[12px] font-bold tracking-widest text-white/70 uppercase">Free to get started</span>
+        <div className="relative z-10 flex flex-col items-center gap-5">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border cx-num"
+            style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.1)' }}>
+            <span className="size-1.5 rounded-full cx-pulse-dot" style={{ background: 'var(--cx-ok)' }} />
+            <span className="text-[10.5px] font-semibold tracking-[.12em] uppercase" style={{ color: 'rgba(246,245,242,0.6)' }}>
+              Free to get started
+            </span>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white leading-[1.1] max-w-xl">
+          <h2 className="text-3xl md:text-[2.6rem] font-semibold tracking-tight leading-[1.1] max-w-lg"
+            style={{ color: '#f6f5f2' }}>
             Your knowledge base is one upload away.
           </h2>
 
-          <p className="text-[16px] text-zinc-400 max-w-md leading-relaxed">
+          <p className="text-[15px] max-w-sm leading-relaxed"
+            style={{ color: 'rgba(246,245,242,0.5)' }}>
             Drop in your PDFs and start asking questions in seconds. No setup, no config — just answers.
           </p>
 
-          <Link
-            href={isLoggedIn ? "/dashboard" : "/login"}
-            className="group relative overflow-hidden inline-flex items-center gap-2 bg-white text-zinc-950 px-8 py-3.5 rounded-full font-bold text-[15px] hover:bg-zinc-100 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] hover:-translate-y-0.5 mt-2"
-          >
-            <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-black/5 to-transparent skew-x-[-15deg]" />
-            {isLoggedIn ? "Go to Dashboard" : "Start for Free"}
-            <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
+          <motion.div whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }} className="mt-2">
+            <Link
+              href={isLoggedIn ? "/dashboard" : "/login"}
+              className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-[15px] transition-all"
+              style={{ background: '#f6f5f2', color: 'var(--cx-ink)', boxShadow: '0 8px 28px rgba(0,0,0,0.3)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#ede9e0')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#f6f5f2')}
+            >
+              {isLoggedIn ? "Go to Dashboard" : "Start for Free"}
+              <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </motion.div>
         </div>
       </motion.div>
     </section>

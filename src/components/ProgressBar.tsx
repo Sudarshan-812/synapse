@@ -75,7 +75,7 @@ export function ProgressBar() {
           className="fixed top-0 left-0 z-[9999] h-[3.5px] pointer-events-none"
           style={{
             width: `${progress}%`,
-            background: 'linear-gradient(90deg, #a855f7, #ec4899, #a855f7)',
+            background: 'linear-gradient(90deg, var(--cx-accent), var(--cx-accent-2), var(--cx-accent))',
             backgroundSize: '200% 100%',
           }}
           initial={{ opacity: 1, width: '0%' }}
@@ -83,10 +83,14 @@ export function ProgressBar() {
             width: `${progress}%`,
             backgroundPosition: ['0% 0%', '100% 0%'],
           }}
-          exit={{ opacity: 0, transition: { duration: 0.3 } }}
+          exit={{ opacity: 0, transition: { duration: 0.35 } }}
           transition={{ width: { duration: 0.3, ease: 'easeOut' } }}
         >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-24 h-[3.5px] bg-gradient-to-l from-white/60 to-transparent blur-[1px]" />
+          {/* Leading glow tip */}
+          <div
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-20 h-[3.5px] blur-[2px]"
+            style={{ background: 'linear-gradient(to left, rgba(162,60,122,0.7), transparent)' }}
+          />
         </motion.div>
       )}
     </AnimatePresence>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { createChatSession, deleteChatSession } from '@/app/session-actions'
 import { switchWorkspace } from '@/app/actions'
 import {
@@ -76,10 +77,11 @@ export function ChatSidebar({
   }
 
   return (
-    <aside
-      className={`flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden border-r`}
+    <motion.aside
+      animate={{ width: collapsed ? 60 : 256 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+      className="flex flex-col h-full flex-shrink-0 overflow-hidden border-r"
       style={{
-        width: collapsed ? 60 : 256,
         background: 'var(--cx-paper)',
         borderColor: 'var(--cx-line)',
       }}
@@ -152,7 +154,8 @@ export function ChatSidebar({
           </div>
         )}
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.88 }}
           onClick={() => setCollapsed(v => !v)}
           className="flex-shrink-0 size-8 rounded-lg flex items-center justify-center transition-colors"
           style={{ color: 'var(--cx-mute-2)' }}
@@ -160,8 +163,14 @@ export function ChatSidebar({
           onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--cx-mute-2)' }}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-        </button>
+          <motion.span
+            animate={{ rotate: collapsed ? 180 : 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+            className="flex"
+          >
+            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </motion.span>
+        </motion.button>
       </div>
 
       {/* ── New Chat ─────────────────────────────────────────── */}
@@ -181,7 +190,8 @@ export function ChatSidebar({
               : <Plus size={13} />}
           </button>
         ) : (
-          <button
+          <motion.button
+            whileTap={{ scale: 0.96 }}
             onClick={handleNewChat}
             disabled={creating}
             className="cx-btn-ink w-full flex items-center gap-2 rounded-full h-9 px-4 text-[12.5px] font-medium disabled:opacity-50"
@@ -190,7 +200,7 @@ export function ChatSidebar({
               ? <Loader2 size={13} className="cx-spin flex-shrink-0" />
               : <Plus size={13} className="flex-shrink-0" />}
             {creating ? 'Creating…' : 'New Chat'}
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -209,51 +219,75 @@ export function ChatSidebar({
           <p className="cx-rule-label px-2 pt-1 pb-2">Recent</p>
         )}
 
-        {sessions.map(session => {
-          const isActive = activeId === session.id
-          return (
-            <div
-              key={session.id}
-              onClick={() => router.push(`/chat/${session.id}`)}
-              title={collapsed ? session.title : undefined}
-              className="group flex items-center gap-2.5 rounded-lg cursor-pointer transition-all duration-150"
-              style={{
-                padding: collapsed ? undefined : '8px 10px',
-                justifyContent: collapsed ? 'center' : undefined,
-                width: collapsed ? 36 : undefined,
-                height: collapsed ? 36 : undefined,
-                margin: collapsed ? '0 auto' : undefined,
-                background: isActive ? 'var(--cx-ink)' : '',
-                color: isActive ? '#f2f0eb' : 'var(--cx-ink-2)',
-              }}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--cx-paper-2)' }}
-              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '' }}
-            >
-              <MessageSquare
-                size={13}
-                className="flex-shrink-0"
-                style={{ color: isActive ? '#d5a8c2' : 'var(--cx-mute-2)' }}
-              />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-[12.5px] font-medium truncate">{session.title}</span>
-                  <button
-                    onClick={e => handleDelete(session.id, e)}
-                    disabled={deletingId === session.id}
-                    className="opacity-0 group-hover:opacity-100 flex-shrink-0 transition-all rounded p-0.5"
-                    style={{ color: isActive ? 'rgba(255,255,255,0.4)' : 'var(--cx-mute-2)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = isActive ? 'rgba(255,255,255,0.8)' : 'var(--cx-err)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = isActive ? 'rgba(255,255,255,0.4)' : 'var(--cx-mute-2)')}
-                  >
-                    {deletingId === session.id
-                      ? <Loader2 size={12} className="animate-spin" />
-                      : <Trash2 size={12} />}
-                  </button>
-                </>
-              )}
-            </div>
-          )
-        })}
+        <AnimatePresence initial={false}>
+          {sessions.map((session, idx) => {
+            const isActive = activeId === session.id
+            return (
+              <motion.div
+                key={session.id}
+                layout
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6, transition: { duration: 0.15 } }}
+                transition={{ duration: 0.28, delay: idx < 12 ? idx * 0.025 : 0, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => router.push(`/chat/${session.id}`)}
+                title={collapsed ? session.title : undefined}
+                className="group relative flex items-center gap-2.5 rounded-lg cursor-pointer transition-colors duration-150"
+                style={{
+                  padding:        collapsed ? undefined : '8px 10px',
+                  justifyContent: collapsed ? 'center'  : undefined,
+                  width:          collapsed ? 36        : undefined,
+                  height:         collapsed ? 36        : undefined,
+                  margin:         collapsed ? '0 auto'  : undefined,
+                  background:     isActive  ? 'var(--cx-ink)' : '',
+                  color:          isActive  ? '#f2f0eb'       : 'var(--cx-ink-2)',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--cx-paper-2)' }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '' }}
+              >
+                {/* Sliding active indicator bar */}
+                {isActive && !collapsed && (
+                  <motion.div
+                    layoutId="sidebar-active-bar"
+                    className="absolute left-0 rounded-full pointer-events-none"
+                    style={{
+                      top: '20%', bottom: '20%',
+                      width: 2,
+                      background: '#d5a8c2',
+                    }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                  />
+                )}
+
+                <MessageSquare
+                  size={13}
+                  className="flex-shrink-0"
+                  style={{ color: isActive ? '#d5a8c2' : 'var(--cx-mute-2)' }}
+                />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-[12.5px] font-medium truncate">{session.title}</span>
+                    <motion.button
+                      initial={false}
+                      animate={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      onClick={e => handleDelete(session.id, e)}
+                      disabled={deletingId === session.id}
+                      className="opacity-0 group-hover:opacity-100 flex-shrink-0 transition-colors rounded p-0.5"
+                      style={{ color: isActive ? 'rgba(255,255,255,0.35)' : 'var(--cx-mute-2)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = isActive ? 'rgba(255,255,255,0.85)' : 'var(--cx-err)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = isActive ? 'rgba(255,255,255,0.35)' : 'var(--cx-mute-2)')}
+                    >
+                      {deletingId === session.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <Trash2 size={12} />}
+                    </motion.button>
+                  </>
+                )}
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
       </div>
 
       {/* ── Footer ───────────────────────────────────────────── */}
@@ -286,6 +320,6 @@ export function ChatSidebar({
           </div>
         )}
       </div>
-    </aside>
+    </motion.aside>
   )
 }
