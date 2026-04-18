@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion'
 import Image from 'next/image'
 import {
-  FileText, Search, ArrowUp, Plus,
+  FileText, ArrowUp, Plus,
   ChevronDown, Sparkles, CheckCircle2,
 } from 'lucide-react'
 import { DynamicGreeting } from '@/components/DynamicGreeting'
 
+/* ── Types ──────────────────────────────────────────────────────── */
 type Source = {
   chunk_id: string
   document_id: string | null
@@ -16,29 +17,267 @@ type Source = {
   content: string
   similarity: number
 }
-
-type ToolEvent = {
-  name: string
-  status: 'running' | 'done'
-  count?: number
-}
-
-type Message = {
-  id?: string
-  role: 'user' | 'assistant'
-  content: string
-  sources?: Source[]
-}
+type ToolEvent = { name: string; status: 'running' | 'done'; count?: number }
+type Message   = { id?: string; role: 'user' | 'assistant'; content: string; sources?: Source[] }
 
 const SUGGESTED = [
-  "Summarize the key points",
-  "What are the main topics?",
-  "Explain the core concepts",
-  "Find specific information",
+  'Summarize the key points',
+  'What are the main topics?',
+  'Explain the core concepts',
+  'Find specific information',
 ]
 
+/* ── Streaming text — per-chunk blur reveal ─────────────────────── */
+function StreamingContent({ content }: { content: string }) {
+  const chunksRef = useRef<string[]>([])
+  const lenRef    = useRef(0)
+
+  if (content.length > lenRef.current) {
+    chunksRef.current = [...chunksRef.current, content.slice(lenRef.current)]
+    lenRef.current = content.length
+  }
+
+  return (
+    <span
+      className="whitespace-pre-wrap break-words text-[15px] leading-[1.85]"
+      style={{ color: 'var(--cx-ink-2)' }}
+    >
+      {chunksRef.current.map((chunk, i) => (
+        <span key={i} className="cx-token">{chunk}</span>
+      ))}
+    </span>
+  )
+}
+
+/* ── Morphing thinking orb ──────────────────────────────────────── */
+function ThinkingOrb({ tools }: { tools: ToolEvent[] }) {
+  const running = tools.find(t => t.status === 'running')
+  const done    = tools.filter(t => t.status === 'done')
+  const isDone  = !running && done.length > 0
+
+  const label = running
+    ? (running.name === 'search_documents' ? 'Searching documents\u2026' : 'Searching the web\u2026')
+    : done.length > 0
+      ? `Found ${done.at(-1)?.count ?? 0} sources`
+      : 'Thinking\u2026'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      className="flex items-center gap-3 py-1"
+    >
+      <div className="relative flex-shrink-0 size-5">
+        {isDone ? (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          >
+            <CheckCircle2 size={18} style={{ color: 'var(--cx-ok)' }} />
+          </motion.div>
+        ) : (
+          <>
+            {/* Morphing blob */}
+            <motion.div
+              className="size-5 rounded-full"
+              style={{ background: 'var(--cx-accent)' }}
+              animate={{
+                borderRadius: [
+                  '50%',
+                  '38% 62% 63% 37% / 41% 44% 56% 59%',
+                  '44% 56% 32% 68% / 60% 38% 62% 40%',
+                  '30% 70% 60% 40% / 50% 60% 40% 50%',
+                  '50%',
+                ],
+                scale: [1, 1.14, 0.93, 1.1, 1],
+              }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {/* Ambient glow halo */}
+            <motion.div
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ background: 'var(--cx-accent)', filter: 'blur(10px)' }}
+              animate={{ scale: [1, 2.1, 1], opacity: [0.38, 0.04, 0.38] }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </>
+        )}
+      </div>
+
+      <div className="relative overflow-hidden">
+        <motion.span
+          key={label}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+          className="text-[13px] font-medium block"
+          style={{ color: 'var(--cx-mute-1)' }}
+        >
+          {label}
+        </motion.span>
+        {!isDone && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, var(--cx-paper) 50%, transparent 100%)',
+            }}
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.7 }}
+          />
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ── Source citations ───────────────────────────────────────────── */
+function RelevanceBar({ score }: { score: number }) {
+  return (
+    <div
+      className="h-[3px] rounded-full overflow-hidden flex-shrink-0"
+      style={{ background: 'var(--cx-line)', width: 36 }}
+    >
+      <motion.div
+        className="h-full rounded-full"
+        style={{ background: 'var(--cx-ok)' }}
+        initial={{ width: 0 }}
+        animate={{ width: `${score}%` }}
+        transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+      />
+    </div>
+  )
+}
+
+function SourceCitations({ sources }: { sources: Source[] }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="mt-4"
+    >
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-[12px] font-medium transition-all duration-200"
+        style={{
+          background:   open ? 'var(--cx-accent-wash)' : 'var(--cx-paper-2)',
+          borderColor:  open ? 'var(--cx-accent-line)' : 'var(--cx-line)',
+          color:        open ? 'var(--cx-accent)'      : 'var(--cx-mute-1)',
+        }}
+      >
+        <FileText size={11} />
+        {sources.length} source{sources.length !== 1 ? 's' : ''}
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.25, ease: 'easeInOut' }}
+          className="flex"
+        >
+          <ChevronDown size={11} />
+        </motion.span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2.5 space-y-2">
+              {sources.map((src, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex gap-3 p-3 rounded-xl border cursor-default transition-all duration-200"
+                  style={{ background: 'var(--cx-surface)', borderColor: 'var(--cx-line)' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--cx-accent-line)'
+                    e.currentTarget.style.background  = 'var(--cx-accent-wash)'
+                    e.currentTarget.style.boxShadow   = '0 2px 14px rgba(122,31,90,0.09)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--cx-line)'
+                    e.currentTarget.style.background  = 'var(--cx-surface)'
+                    e.currentTarget.style.boxShadow   = 'none'
+                  }}
+                >
+                  <div
+                    className="size-8 rounded-lg flex items-center justify-center flex-shrink-0 border"
+                    style={{ background: 'var(--cx-accent-wash)', borderColor: 'var(--cx-accent-line)' }}
+                  >
+                    <FileText size={13} style={{ color: 'var(--cx-accent)' }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <p className="text-[12.5px] font-semibold truncate flex-1" style={{ color: 'var(--cx-ink)' }}>
+                        {src.document_name}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <RelevanceBar score={src.similarity} />
+                        <span className="text-[10.5px] cx-num" style={{ color: 'var(--cx-ok)' }}>
+                          {src.similarity}%
+                        </span>
+                      </div>
+                    </div>
+                    <p
+                      className="text-[12px] leading-relaxed line-clamp-2 italic cx-serif"
+                      style={{ color: 'var(--cx-mute-1)' }}
+                    >
+                      &ldquo;{src.content}&rdquo;
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+/* ── Prompt card — 3D magnetic tilt ────────────────────────────── */
+function PromptCard({
+  label, index, onClick,
+}: { label: string; index: number; onClick: () => void }) {
+  const x    = useMotionValue(0)
+  const y    = useMotionValue(0)
+  const rotX = useSpring(useTransform(y, [-40, 40], [7, -7]),   { stiffness: 180, damping: 18 })
+  const rotY = useSpring(useTransform(x, [-80, 80], [-7, 7]),   { stiffness: 180, damping: 18 })
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.28 + index * 0.07, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+      style={{ rotateX: rotX, rotateY: rotY, transformPerspective: 700 }}
+      whileTap={{ scale: 0.95 }}
+      onMouseMove={e => {
+        const r = e.currentTarget.getBoundingClientRect()
+        x.set(e.clientX - r.left  - r.width  / 2)
+        y.set(e.clientY - r.top   - r.height / 2)
+      }}
+      onMouseLeave={() => { x.set(0); y.set(0) }}
+      onClick={onClick}
+      className="cx-prompt-card text-left px-4 py-3.5 rounded-2xl border text-[13px] font-medium"
+    >
+      <Sparkles size={11} className="mb-2" style={{ color: 'var(--cx-accent)', opacity: 0.65 }} />
+      <span style={{ color: 'inherit' }}>{label}</span>
+    </motion.button>
+  )
+}
+
+/* ── Markdown renderer ──────────────────────────────────────────── */
 function renderMarkdown(text: string) {
-  const lines = text.split('\n')
+  const lines    = text.split('\n')
   const elements: React.ReactNode[] = []
   let i = 0, k = 0
 
@@ -46,20 +285,38 @@ function renderMarkdown(text: string) {
     const line = lines[i]
 
     if (line.startsWith('# ')) {
-      elements.push(<h1 key={k++} className="text-xl font-bold text-zinc-950 mt-5 mb-2 tracking-tight">{inlineFormat(line.slice(2))}</h1>)
+      elements.push(
+        <h1 key={k++} className="text-xl font-semibold tracking-tight mt-5 mb-2" style={{ color: 'var(--cx-ink)' }}>
+          {inlineFormat(line.slice(2))}
+        </h1>
+      )
     } else if (line.startsWith('## ')) {
-      elements.push(<h2 key={k++} className="text-[17px] font-bold text-zinc-900 mt-4 mb-1.5 tracking-tight">{inlineFormat(line.slice(3))}</h2>)
+      elements.push(
+        <h2 key={k++} className="text-[17px] font-semibold tracking-tight mt-4 mb-1.5" style={{ color: 'var(--cx-ink)' }}>
+          {inlineFormat(line.slice(3))}
+        </h2>
+      )
     } else if (line.startsWith('### ')) {
-      elements.push(<h3 key={k++} className="text-[15px] font-bold text-zinc-800 mt-3 mb-1">{inlineFormat(line.slice(4))}</h3>)
+      elements.push(
+        <h3 key={k++} className="text-[15px] font-semibold mt-3 mb-1" style={{ color: 'var(--cx-ink-2)' }}>
+          {inlineFormat(line.slice(4))}
+        </h3>
+      )
     } else if (line.startsWith('```')) {
       const lang = line.slice(3).trim()
       const codeLines: string[] = []
       i++
       while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++ }
       elements.push(
-        <div key={k++} className="my-3 rounded-2xl overflow-hidden border border-zinc-100">
-          {lang && <div className="px-4 py-1.5 bg-zinc-50 border-b border-zinc-100 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{lang}</div>}
-          <pre className="bg-zinc-950 text-emerald-300 text-[13px] leading-relaxed p-4 overflow-x-auto font-mono"><code>{codeLines.join('\n')}</code></pre>
+        <div key={k++} className="my-3 rounded-xl overflow-hidden border" style={{ borderColor: 'var(--cx-line)' }}>
+          {lang && (
+            <div className="px-4 py-1.5 border-b cx-rule-label" style={{ background: 'var(--cx-paper-2)', borderColor: 'var(--cx-line)' }}>
+              {lang}
+            </div>
+          )}
+          <pre className="text-[13px] leading-relaxed p-4 overflow-x-auto font-mono" style={{ background: 'var(--cx-ink)', color: '#a5d6a7' }}>
+            <code>{codeLines.join('\n')}</code>
+          </pre>
         </div>
       )
     } else if (line.match(/^[-*•]\s/)) {
@@ -68,8 +325,8 @@ function renderMarkdown(text: string) {
       elements.push(
         <ul key={k++} className="my-2 space-y-1.5">
           {items.map((item, j) => (
-            <li key={j} className="flex items-start gap-2.5 text-zinc-700 leading-relaxed text-[15px]">
-              <span className="mt-2 size-1.5 rounded-full bg-zinc-300 flex-shrink-0" />
+            <li key={j} className="flex items-start gap-2.5 leading-relaxed text-[15px]" style={{ color: 'var(--cx-ink-2)' }}>
+              <span className="mt-2.5 size-1 rounded-full flex-shrink-0" style={{ background: 'var(--cx-mute-2)' }} />
               <span>{inlineFormat(item)}</span>
             </li>
           ))}
@@ -82,8 +339,10 @@ function renderMarkdown(text: string) {
       elements.push(
         <ol key={k++} className="my-2 space-y-1.5">
           {items.map((item, j) => (
-            <li key={j} className="flex items-start gap-3 text-zinc-700 leading-relaxed text-[15px]">
-              <span className="mt-0.5 min-w-[1.25rem] text-[12px] font-bold text-fuchsia-500">{j + 1}.</span>
+            <li key={j} className="flex items-start gap-3 leading-relaxed text-[15px]" style={{ color: 'var(--cx-ink-2)' }}>
+              <span className="mt-0.5 min-w-[1.25rem] text-[12px] font-bold cx-num flex-shrink-0" style={{ color: 'var(--cx-accent)' }}>
+                {j + 1}.
+              </span>
               <span>{inlineFormat(item)}</span>
             </li>
           ))}
@@ -91,15 +350,21 @@ function renderMarkdown(text: string) {
       )
       continue
     } else if (line.match(/^---+$/)) {
-      elements.push(<hr key={k++} className="my-4 border-zinc-100" />)
+      elements.push(<hr key={k++} className="my-4" style={{ borderColor: 'var(--cx-line)' }} />)
     } else if (line.startsWith('> ')) {
       elements.push(
-        <blockquote key={k++} className="my-3 pl-4 border-l-2 border-zinc-200 text-zinc-500 italic text-[15px]">{inlineFormat(line.slice(2))}</blockquote>
+        <blockquote key={k++} className="my-3 pl-4 border-l-2 text-[15px] cx-serif italic" style={{ borderColor: 'var(--cx-accent-line)', color: 'var(--cx-mute-1)' }}>
+          {inlineFormat(line.slice(2))}
+        </blockquote>
       )
     } else if (line.trim() === '') {
       elements.push(<div key={k++} className="h-2" />)
     } else {
-      elements.push(<p key={k++} className="text-zinc-700 leading-[1.8] my-0.5 text-[15px]">{inlineFormat(line)}</p>)
+      elements.push(
+        <p key={k++} className="leading-[1.85] my-0.5 text-[15px]" style={{ color: 'var(--cx-ink-2)' }}>
+          {inlineFormat(line)}
+        </p>
+      )
     }
     i++
   }
@@ -109,92 +374,17 @@ function renderMarkdown(text: string) {
 function inlineFormat(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
   return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i} className="font-semibold text-zinc-900">{part.slice(2, -2)}</strong>
-    if (part.startsWith('*') && part.endsWith('*')) return <em key={i} className="italic text-zinc-600">{part.slice(1, -1)}</em>
-    if (part.startsWith('`') && part.endsWith('`')) return <code key={i} className="font-mono text-[13px] bg-zinc-100 text-zinc-800 px-1.5 py-0.5 rounded-md">{part.slice(1, -1)}</code>
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={i} className="font-semibold" style={{ color: 'var(--cx-ink)' }}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('*') && part.endsWith('*'))
+      return <em key={i} className="cx-serif italic" style={{ color: 'var(--cx-mute-1)' }}>{part.slice(1, -1)}</em>
+    if (part.startsWith('`') && part.endsWith('`'))
+      return <code key={i} className="font-mono text-[13px] px-1.5 py-0.5 rounded cx-num" style={{ background: 'var(--cx-paper-2)', color: 'var(--cx-ink-2)', border: '1px solid var(--cx-line)' }}>{part.slice(1, -1)}</code>
     return part
   })
 }
 
-function ThinkingIndicator({ tools }: { tools: ToolEvent[] }) {
-  const running = tools.find(t => t.status === 'running')
-  const done = tools.filter(t => t.status === 'done')
-
-  const label = running
-    ? running.name === 'search_documents' ? 'Searching documents' : 'Searching the web'
-    : done.length > 0
-      ? done[done.length - 1].name === 'search_documents'
-        ? `Found ${done[done.length - 1].count ?? 0} sources`
-        : 'Web results ready'
-      : 'Thinking'
-
-  const isSearching = !!running
-  const isDone = !running && done.length > 0
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 py-1"
-    >
-      <div className="relative flex-shrink-0">
-        {isSearching ? (
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-            className="size-5"
-          >
-            <Search className="size-5 text-fuchsia-500" />
-          </motion.div>
-        ) : isDone ? (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
-            <CheckCircle2 className="size-5 text-emerald-500" />
-          </motion.div>
-        ) : (
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <Sparkles className="size-5 text-fuchsia-400" />
-          </motion.div>
-        )}
-
-        {isSearching && (
-          <motion.div
-            className="absolute inset-0 rounded-full border border-fuchsia-300"
-            animate={{ scale: [1, 2], opacity: [0.6, 0] }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'easeOut' }}
-          />
-        )}
-      </div>
-
-      <div className="relative overflow-hidden">
-        <span className="text-[13.5px] font-medium text-zinc-500">{label}</span>
-        {!isDone && (
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-transparent"
-            animate={{ x: ['-100%', '200%'] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.4 }}
-          />
-        )}
-      </div>
-
-      {!isSearching && !isDone && (
-        <div className="flex gap-1 items-center">
-          {[0, 1, 2].map(j => (
-            <motion.span
-              key={j}
-              className="size-1 rounded-full bg-fuchsia-400 inline-block"
-              animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 0.9, repeat: Infinity, delay: j * 0.2 }}
-            />
-          ))}
-        </div>
-      )}
-    </motion.div>
-  )
-}
-
+/* ── Main ChatWindow ────────────────────────────────────────────── */
 export function ChatWindow({
   sessionId,
   workspaceId,
@@ -204,17 +394,17 @@ export function ChatWindow({
   workspaceId: string
   initialMessages: Message[]
 }) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [messages,    setMessages]    = useState<Message[]>(initialMessages)
+  const [input,       setInput]       = useState('')
+  const [loading,     setLoading]     = useState(false)
   const [activeTools, setActiveTools] = useState<ToolEvent[]>([])
-  const [focused, setFocused] = useState(false)
+  const [focused,     setFocused]     = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const inputRef  = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading, activeTools])
+  }, [messages, loading])
 
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setInput(e.target.value)
@@ -237,7 +427,7 @@ export function ChatWindow({
 
     setMessages(prev => [
       ...prev,
-      { role: 'user', content: query },
+      { role: 'user',      content: query },
       { role: 'assistant', content: '', sources: [] },
     ])
 
@@ -249,9 +439,9 @@ export function ChatWindow({
       })
       if (!response.ok) throw new Error(`Request failed: ${response.status}`)
 
-      const reader = response.body!.getReader()
+      const reader  = response.body!.getReader()
       const decoder = new TextDecoder()
-      let buffer = ''
+      let buffer    = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -267,7 +457,11 @@ export function ChatWindow({
             if (event.type === 'tool') {
               setActiveTools(prev => {
                 const idx = prev.findIndex(t => t.name === event.name)
-                if (idx >= 0) { const next = [...prev]; next[idx] = { name: event.name, status: event.status, count: event.count }; return next }
+                if (idx >= 0) {
+                  const next = [...prev]
+                  next[idx] = { name: event.name, status: event.status, count: event.count }
+                  return next
+                }
                 return [...prev, { name: event.name, status: event.status, count: event.count }]
               })
             } else if (event.type === 'token') {
@@ -291,7 +485,7 @@ export function ChatWindow({
                 return msgs
               })
             }
-          } catch { }
+          } catch { /* ignore parse errors */ }
         }
       }
     } catch {
@@ -309,63 +503,92 @@ export function ChatWindow({
   const isEmpty = messages.length === 0
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="flex-1 overflow-y-auto scroll-smooth">
+    <div className="flex flex-col h-full" style={{ background: 'var(--cx-paper)' }}>
+
+      {/* ── Message area ──────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto cx-scroll-thin scroll-smooth">
+
+        {/* Empty state */}
         <AnimatePresence>
           {isEmpty && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-center justify-center min-h-full px-6 py-20 gap-10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.4 }}
+              className="relative flex flex-col items-center justify-center min-h-full px-6 py-20 gap-10"
             >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="flex flex-col items-center gap-5"
-              >
-                <div className="relative size-16 rounded-2xl bg-gradient-to-br from-fuchsia-50 to-purple-50 border border-fuchsia-100/80 shadow-[0_4px_24px_rgba(192,38,211,0.1)] flex items-center justify-center">
-                  <Image src="/CortexLogo.png" alt="Cortex" width={34} height={34} className="object-contain" />
+              {/* Ambient radial glow */}
+              <div
+                className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse, rgba(122,31,90,0.07) 0%, transparent 65%)' }}
+              />
+
+              <div className="relative z-10 flex flex-col items-center gap-5">
+                {/* Floating logo with orbiting ring */}
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="relative"
+                >
+                  <div
+                    className="size-[68px] rounded-[1.35rem] border flex items-center justify-center"
+                    style={{
+                      background: 'var(--cx-surface)',
+                      borderColor: 'var(--cx-line)',
+                      boxShadow: '0 8px 32px rgba(122,31,90,0.12), 0 1px 0 rgba(255,255,255,0.85) inset',
+                    }}
+                  >
+                    <Image src="/CortexLogo.png" alt="Cortex" width={36} height={36} className="object-contain" />
+                  </div>
+                  {/* Orbiting dashed ring */}
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-                    className="absolute inset-0 rounded-2xl border border-fuchsia-200/30"
-                    style={{ borderStyle: 'dashed' }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                    className="absolute pointer-events-none"
+                    style={{ inset: -12, borderRadius: 'calc(1.35rem + 12px)', border: '1px dashed var(--cx-line-2)' }}
                   />
-                </div>
-                <DynamicGreeting />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="grid grid-cols-2 gap-3 w-full max-w-lg"
-              >
-                {SUGGESTED.map((s, i) => (
-                  <motion.button
-                    key={s}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.38 + i * 0.07 }}
-                    whileHover={{ y: -2, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleSubmit(s)}
-                    className="text-left px-4 py-3.5 rounded-2xl border border-zinc-200/80 bg-zinc-50/60 hover:bg-white hover:border-fuchsia-200/60 text-[13px] font-medium text-zinc-600 hover:text-zinc-900 transition-all shadow-sm group"
+                  {/* Accent dot that orbits */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                    className="absolute pointer-events-none"
+                    style={{ inset: -12 }}
                   >
-                    <Sparkles className="size-3.5 text-fuchsia-400 mb-2 group-hover:text-fuchsia-500 transition-colors" />
-                    {s}
-                  </motion.button>
+                    <div
+                      className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 size-2 rounded-full border-[1.5px]"
+                      style={{ background: 'var(--cx-accent)', borderColor: 'var(--cx-paper)' }}
+                    />
+                  </motion.div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.14, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <DynamicGreeting />
+                </motion.div>
+              </div>
+
+              {/* Suggested prompts */}
+              <div className="relative z-10 grid grid-cols-2 gap-2.5 w-full max-w-[500px]">
+                {SUGGESTED.map((s, i) => (
+                  <PromptCard
+                    key={s}
+                    label={s}
+                    index={i}
+                    onClick={() => handleSubmit(s)}
+                  />
                 ))}
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Conversation */}
         {!isEmpty && (
-          <div className="max-w-[760px] mx-auto px-6 py-8 space-y-8">
+          <div className="max-w-[720px] mx-auto px-6 pt-10 pb-4 space-y-10">
             <AnimatePresence initial={false}>
               {messages.map((msg, i) => {
                 const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1 && loading
@@ -374,12 +597,20 @@ export function ChatWindow({
                   return (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25 }}
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                       className="flex justify-end"
                     >
-                      <div className="max-w-[75%] bg-zinc-100 rounded-3xl rounded-tr-lg px-5 py-3.5 text-[15px] text-zinc-900 leading-relaxed font-normal">
+                      <div
+                        className="max-w-[78%] rounded-2xl rounded-tr-md px-5 py-3.5 text-[14.5px] leading-[1.75] whitespace-pre-wrap"
+                        style={{
+                          background: 'var(--cx-surface)',
+                          color: 'var(--cx-ink)',
+                          border: '1px solid var(--cx-line)',
+                          boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 16px rgba(10,10,10,0.05)',
+                        }}
+                      >
                         {msg.content}
                       </div>
                     </motion.div>
@@ -391,67 +622,101 @@ export function ChatWindow({
                     key={i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex gap-4 items-start"
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex gap-3.5 items-start"
                   >
-                    <div className={`
-                      flex-shrink-0 size-8 rounded-full border flex items-center justify-center mt-0.5
-                      ${isLastAssistant
-                        ? 'bg-gradient-to-br from-fuchsia-50 to-purple-50 border-fuchsia-200/60 shadow-[0_0_12px_rgba(192,38,211,0.15)]'
-                        : 'bg-zinc-50 border-zinc-200/60'
-                      }
-                    `}>
-                      {isLastAssistant ? (
+                    {/* Avatar */}
+                    <div className="flex-shrink-0 mt-0.5 relative">
+                      <div
+                        className="size-7 rounded-full border flex items-center justify-center overflow-hidden"
+                        style={{
+                          background:  isLastAssistant ? 'var(--cx-accent)' : 'var(--cx-surface)',
+                          borderColor: isLastAssistant ? 'transparent'       : 'var(--cx-line)',
+                          transition:  'background 0.4s ease, border-color 0.4s ease',
+                        }}
+                      >
+                        {isLastAssistant ? (
+                          <motion.div
+                            className="size-[9px] rounded-full"
+                            style={{ background: 'rgba(255,255,255,0.85)' }}
+                            animate={{ scale: [1, 0.55, 1], opacity: [1, 0.55, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                          />
+                        ) : (
+                          <Image src="/CortexLogo.png" alt="Cortex" width={15} height={15} className="object-contain opacity-75" />
+                        )}
+                      </div>
+                      {/* Ripple ring when streaming */}
+                      {isLastAssistant && (
                         <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                        >
-                          <Image src="/CortexLogo.png" alt="Cortex" width={18} height={18} className="object-contain" />
-                        </motion.div>
-                      ) : (
-                        <Image src="/CortexLogo.png" alt="Cortex" width={18} height={18} className="object-contain" />
+                          className="absolute inset-0 rounded-full pointer-events-none"
+                          style={{ border: '2px solid rgba(122,31,90,0.4)' }}
+                          animate={{ scale: [1, 1.6], opacity: [0.7, 0] }}
+                          transition={{ duration: 1.3, repeat: Infinity, ease: 'easeOut' }}
+                        />
                       )}
                     </div>
 
-                    <div className="flex-1 min-w-0 space-y-3 pt-0.5">
+                    <div className="flex-1 min-w-0 space-y-2.5 pt-0.5">
+                      {/* Thinking orb */}
                       <AnimatePresence>
                         {isLastAssistant && msg.content === '' && (
-                          <ThinkingIndicator tools={activeTools} />
+                          <ThinkingOrb tools={activeTools} />
                         )}
                       </AnimatePresence>
 
+                      {/* Tool-done badges */}
                       <AnimatePresence>
                         {isLastAssistant && activeTools.some(t => t.status === 'done') && msg.content !== '' && (
                           <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
                             className="flex flex-wrap gap-1.5"
                           >
                             {activeTools.filter(t => t.status === 'done').map(t => (
-                              <div key={t.name} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-[11.5px] font-medium text-emerald-700">
-                                <CheckCircle2 className="size-3" />
-                                {t.name === 'search_documents' ? `${t.count ?? 0} sources found` : 'Web search done'}
+                              <div
+                                key={t.name}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11.5px] font-medium"
+                                style={{
+                                  color: 'var(--cx-ok)',
+                                  background: 'var(--cx-ok-wash)',
+                                  borderColor: 'rgba(60,110,71,0.2)',
+                                }}
+                              >
+                                <CheckCircle2 size={10} strokeWidth={2.5} />
+                                {t.name === 'search_documents'
+                                  ? `${t.count ?? 0} sources found`
+                                  : 'Web search done'}
                               </div>
                             ))}
                           </motion.div>
                         )}
                       </AnimatePresence>
 
+                      {/* Message content */}
                       {msg.content && (
-                        <div className="text-[15px] leading-[1.8]">
-                          {renderMarkdown(msg.content)}
-                          {isLastAssistant && (
-                            <motion.span
-                              animate={{ opacity: [1, 0, 1] }}
-                              transition={{ repeat: Infinity, duration: 0.9 }}
-                              className="inline-block w-[2px] h-4 bg-fuchsia-400 ml-0.5 align-middle rounded-full"
-                            />
+                        <div>
+                          {isLastAssistant ? (
+                            <span className="inline">
+                              <StreamingContent content={msg.content} />
+                              {/* Blinking cursor */}
+                              <motion.span
+                                animate={{ opacity: [1, 0, 1] }}
+                                transition={{ repeat: Infinity, duration: 0.85, ease: 'easeInOut' }}
+                                className="inline-block w-[2px] h-[15px] ml-0.5 rounded-full"
+                                style={{ background: 'var(--cx-accent)', verticalAlign: '-3px' }}
+                              />
+                            </span>
+                          ) : (
+                            <div className="text-[15px] leading-[1.85]">
+                              {renderMarkdown(msg.content)}
+                            </div>
                           )}
                         </div>
                       )}
 
+                      {/* Sources */}
                       {!loading && msg.sources && msg.sources.length > 0 && (
                         <SourceCitations sources={msg.sources} />
                       )}
@@ -463,144 +728,102 @@ export function ChatWindow({
           </div>
         )}
 
-        <div ref={bottomRef} className="h-4" />
+        <div ref={bottomRef} className="h-6" />
       </div>
 
-      <div className="flex-shrink-0 px-6 pb-6 pt-2">
-        <div className="max-w-[760px] mx-auto">
-          <div
-            className={`
-              relative bg-zinc-50 border rounded-3xl overflow-hidden
-              transition-[border-color,background-color,box-shadow] duration-200
-              ${focused
-                ? 'border-zinc-300 bg-white shadow-[0_0_0_2px_rgba(192,38,211,0.12),_0_4px_32px_rgba(0,0,0,0.07)]'
-                : 'border-zinc-200 shadow-[0_2px_16px_rgba(0,0,0,0.05)]'
-              }
-            `}
-          >
-            <textarea
-              ref={inputRef}
-              rows={1}
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              placeholder="Ask Cortex anything about your documents…"
-              disabled={loading}
-              autoFocus
-              className="w-full resize-none bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-500 outline-none leading-relaxed px-5 pt-4 pb-3 disabled:opacity-60 max-h-[180px] font-[inherit]"
-              style={{ height: 'auto' }}
-            />
+      {/* ── Input bar ─────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 relative" style={{ background: 'var(--cx-paper)' }}>
+        {/* Fade gradient above input */}
+        <div
+          className="absolute -top-10 inset-x-0 h-10 pointer-events-none z-10"
+          style={{ background: 'linear-gradient(to bottom, transparent, var(--cx-paper))' }}
+        />
 
-            <div className="flex items-center justify-between px-3 pb-3">
-              <div className="flex items-center gap-1">
+        <div
+          className="relative z-20 px-6 pb-6 pt-3 border-t"
+          style={{ borderColor: 'var(--cx-line)' }}
+        >
+          <div className="max-w-[720px] mx-auto">
+            {/* Input container with animated glow */}
+            <motion.div
+              animate={{
+                boxShadow: focused
+                  ? [
+                      '0 0 0 3px var(--cx-accent-wash), 0 4px 24px rgba(122,31,90,0.09)',
+                      '0 0 0 4.5px var(--cx-accent-wash), 0 8px 32px rgba(122,31,90,0.16)',
+                      '0 0 0 3px var(--cx-accent-wash), 0 4px 24px rgba(122,31,90,0.09)',
+                    ]
+                  : '0 2px 8px rgba(10,10,10,0.04)',
+              }}
+              transition={
+                focused
+                  ? { duration: 2.6, repeat: Infinity, ease: 'easeInOut' }
+                  : { duration: 0.25 }
+              }
+              className="rounded-2xl overflow-hidden transition-colors duration-200"
+              style={{
+                background:  focused ? 'var(--cx-surface)' : 'var(--cx-paper-2)',
+                border:      `1.5px solid ${focused ? 'var(--cx-accent-line)' : 'var(--cx-line)'}`,
+              }}
+            >
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                placeholder="Ask Cortex anything about your documents\u2026"
+                disabled={loading}
+                autoFocus
+                className="w-full resize-none bg-transparent text-[14.5px] outline-none leading-relaxed px-5 pt-4 pb-3 disabled:opacity-60 max-h-[180px] font-[inherit]"
+                style={{ color: 'var(--cx-ink)', caretColor: 'var(--cx-accent)' }}
+              />
+
+              <div className="flex items-center justify-between px-3 pb-3">
                 <button
                   type="button"
-                  className="h-8 w-8 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors"
-                  title="Attach"
+                  title="Attach file"
+                  className="size-8 rounded-full flex items-center justify-center transition-all duration-150"
+                  style={{ color: 'var(--cx-mute-2)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--cx-paper-2)'; e.currentTarget.style.color = 'var(--cx-ink)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '';                   e.currentTarget.style.color = 'var(--cx-mute-2)' }}
                 >
-                  <Plus className="size-4" />
+                  <Plus size={15} />
                 </button>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-zinc-400 font-medium hidden sm:block">
-                  Shift+Enter for new line
-                </span>
-                <motion.button
-                  whileTap={{ scale: 0.88 }}
-                  onClick={() => handleSubmit()}
-                  disabled={loading || !input.trim()}
-                  className={`
-                    size-8 rounded-full flex items-center justify-center transition-all duration-200
-                    ${input.trim() && !loading
-                      ? 'bg-zinc-900 hover:bg-zinc-700 text-white shadow-sm'
-                      : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                    }
-                  `}
-                >
-                  <ArrowUp className="size-4" />
-                </motion.button>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[11px] font-medium hidden sm:block" style={{ color: 'var(--cx-mute-2)' }}>
+                    Shift ↵ new line
+                  </span>
+                  <motion.button
+                    whileTap={{ scale: 0.82 }}
+                    whileHover={input.trim() && !loading ? { scale: 1.07 } : {}}
+                    onClick={() => handleSubmit()}
+                    disabled={loading || !input.trim()}
+                    className="size-8 rounded-full flex items-center justify-center transition-all duration-200"
+                    style={{
+                      background: input.trim() && !loading ? 'var(--cx-ink)' : 'var(--cx-line)',
+                      color:      input.trim() && !loading ? '#f9f8f5'       : 'var(--cx-mute-2)',
+                      cursor:     input.trim() && !loading ? 'pointer'       : 'not-allowed',
+                      boxShadow:  input.trim() && !loading
+                        ? '0 4px 14px rgba(10,10,10,0.28)'
+                        : 'none',
+                    }}
+                  >
+                    <ArrowUp size={15} strokeWidth={2.25} />
+                  </motion.button>
+                </div>
               </div>
-            </div>
+            </motion.div>
+
+            <p className="text-center text-[11px] mt-2.5 cx-num" style={{ color: 'var(--cx-mute-2)' }}>
+              Gemini Flash · hybrid retrieval · verify before relying on answers
+            </p>
           </div>
-
-          <p className="text-center text-[11px] text-zinc-400 mt-2.5 font-medium">
-            Cortex uses{' '}
-            <span className="bg-gradient-to-r from-fuchsia-500 to-violet-500 bg-clip-text text-transparent font-semibold">
-              Gemini Flash
-            </span>
-            {' '}· Hybrid search · Verify important information
-          </p>
         </div>
       </div>
     </div>
-  )
-}
-
-function SourceCitations({ sources }: { sources: Source[] }) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 }}
-      className="mt-2"
-    >
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-[12px] font-medium text-zinc-500 hover:text-zinc-700 transition-all"
-      >
-        <FileText className="size-3 text-fuchsia-500" />
-        {sources.length} source{sources.length > 1 ? 's' : ''}
-        <motion.span
-          animate={{ rotate: open ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="text-zinc-400"
-        >
-          <ChevronDown className="size-3" />
-        </motion.span>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scaleY: 0 }}
-            animate={{ opacity: 1, scaleY: 1 }}
-            exit={{ opacity: 0, scaleY: 0 }}
-            style={{ transformOrigin: 'top' }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="overflow-hidden mt-2.5"
-          >
-            <div className="grid grid-cols-1 gap-2">
-              {sources.map((src, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="flex gap-3 p-3 rounded-2xl border border-zinc-100 bg-zinc-50/60 hover:bg-white hover:border-zinc-200 transition-colors"
-                >
-                  <div className="size-8 rounded-xl bg-fuchsia-50 border border-fuchsia-100/60 flex items-center justify-center flex-shrink-0">
-                    <FileText className="size-3.5 text-fuchsia-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-[12.5px] font-semibold text-zinc-800 truncate">{src.document_name}</p>
-                      <span className="flex-shrink-0 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded-full font-bold">
-                        {src.similarity}%
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-zinc-400 leading-relaxed line-clamp-2">{src.content}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
   )
 }

@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { Brain } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 
 export default async function ChatIndexPage() {
   const supabase = await createClient()
@@ -9,7 +9,6 @@ export default async function ChatIndexPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  // ── Resolve active workspace from cookie ───────────────────────────
   const cookieStore = await cookies()
   const activeId = cookieStore.get("cortex_active_workspace")?.value
 
@@ -21,10 +20,8 @@ export default async function ChatIndexPage() {
 
   if (!workspaces || workspaces.length === 0) redirect("/dashboard")
 
-  const workspace =
-    workspaces.find(w => w.id === activeId) ?? workspaces[0]
+  const workspace = workspaces.find(w => w.id === activeId) ?? workspaces[0]
 
-  // Auto-redirect to the most recent session in this workspace
   const { data: latest } = await supabase
     .from("chat_sessions")
     .select("id")
@@ -35,21 +32,22 @@ export default async function ChatIndexPage() {
 
   if (latest) redirect(`/chat/${latest.id}`)
 
-  // No sessions yet → empty state
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-zinc-50 relative overflow-hidden">
-
-      {/* Subtle radial glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse_at_top,_#fdf4ff_0%,_transparent_70%)] pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col items-center gap-5 text-center px-6">
-        <div className="size-16 rounded-[1.25rem] bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center shadow-sm">
-          <Brain className="size-8 text-fuchsia-500" />
+    <div
+      className="flex flex-col items-center justify-center h-full"
+      style={{ background: 'var(--cx-paper)' }}
+    >
+      <div className="flex flex-col items-center gap-4 text-center px-6">
+        <div
+          className="size-14 rounded-2xl flex items-center justify-center border"
+          style={{ background: 'var(--cx-accent-wash)', borderColor: 'var(--cx-accent-line)' }}
+        >
+          <MessageSquare size={22} style={{ color: 'var(--cx-accent)' }} />
         </div>
         <div>
-          <p className="text-base font-bold text-zinc-900">No chats yet</p>
-          <p className="text-sm text-zinc-400 mt-1.5 max-w-[220px] leading-relaxed">
-            Click <span className="font-semibold text-zinc-700">New Chat</span> in the sidebar to get started.
+          <p className="text-[14px] font-semibold" style={{ color: 'var(--cx-ink)' }}>No chats yet</p>
+          <p className="cx-rule-label mt-1 max-w-[200px] leading-relaxed">
+            Click <span style={{ color: 'var(--cx-ink-2)', fontWeight: 600 }}>New Chat</span> in the sidebar to begin.
           </p>
         </div>
       </div>
