@@ -94,6 +94,11 @@ export default async function Dashboard() {
     ? await supabase.from("document_chunks").select("*", { count: "exact", head: true }).in("document_id", docIds)
     : { count: 0 }
 
+  const { count: sessionCount } = await supabase
+    .from("chat_sessions")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", workspace.id)
+
   const totalBytes = documents?.reduce((s, d) => s + (d.size_bytes ?? 0), 0) ?? 0
   const storageMB  = Math.round(totalBytes / (1024 * 1024))
 
@@ -128,11 +133,12 @@ export default async function Dashboard() {
             <p className="mt-3 text-[14px] leading-relaxed" style={{ color: "var(--cx-mute-1)" }}>
               <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>{docCount ?? 0}</span>{" "}documents,{" "}
               <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>{(chunkCount ?? 0).toLocaleString()}</span>{" "}embeddings,{" "}
-              and <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>7</span> agents at work.
+              and <span className="cx-num" style={{ color: "var(--cx-ink-2)" }}>{sessionCount ?? 0}</span> sessions.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
+              onClick={() => document.getElementById('upload-zone')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               className="cx-btn-ghost h-9 px-4 rounded-full text-[12.5px] font-medium flex items-center gap-1.5"
               style={{ color: "var(--cx-ink-2)" }}
             >
@@ -145,7 +151,7 @@ export default async function Dashboard() {
         </div>
 
         {/* Metrics grid */}
-        <MetricsGrid docs={docCount ?? 0} embeddings={chunkCount ?? 0} storageMB={storageMB} />
+        <MetricsGrid docs={docCount ?? 0} embeddings={chunkCount ?? 0} storageMB={storageMB} sessions={sessionCount ?? 0} />
 
         {/* RAG pipeline visualization */}
         <PipelineViz />
@@ -156,7 +162,9 @@ export default async function Dashboard() {
             <ChatDemo />
           </div>
           <div className="flex flex-col gap-5">
-            <UploadZoneNew workspaceId={workspace.id} />
+            <div id="upload-zone">
+              <UploadZoneNew workspaceId={workspace.id} />
+            </div>
             <SystemStatus />
           </div>
         </div>

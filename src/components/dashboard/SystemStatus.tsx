@@ -23,7 +23,7 @@ export function SystemStatus() {
     <div className="cx-panel p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="cx-rule-label">System status</p>
-        <span className="cx-num text-[10.5px]" style={{ color: 'var(--cx-mute-2)' }}>99.98%</span>
+        <span className="cx-num text-[10.5px] px-1.5 py-0.5 rounded border" style={{ color: 'var(--cx-mute-2)', borderColor: 'var(--cx-line)', background: 'var(--cx-paper-2)' }}>demo</span>
       </div>
 
       <div className="space-y-1 -mx-1">

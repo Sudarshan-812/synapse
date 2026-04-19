@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   Search, Bell, ChevronDown, Check, Building2, Settings,
-  LogOut, Plus, Loader2, X,
+  LogOut, Plus, Loader2, X, BellOff,
 } from 'lucide-react'
 import { switchWorkspace, createNewWorkspace, deleteWorkspace } from '@/app/actions'
 
@@ -25,11 +25,13 @@ export function DashboardNavbar({
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
   const [switching, setSwitching] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -38,10 +40,24 @@ export function DashboardNavbar({
         setShowCreate(false)
         setNewName('')
       }
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    function handleCmdK(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        router.push('/chat')
+      }
+    }
+    document.addEventListener('keydown', handleCmdK)
+    return () => document.removeEventListener('keydown', handleCmdK)
+  }, [router])
 
   async function handleSwitch(id: string) {
     if (id === workspace.id || switching) return
@@ -109,15 +125,40 @@ export function DashboardNavbar({
             </kbd>
           </Link>
 
-          <button
-            className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors relative"
-            style={{ color: 'var(--cx-mute-1)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--cx-paper-2)')}
-            onMouseLeave={e => (e.currentTarget.style.background = '')}
-          >
-            <Bell size={15} />
-            <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full" style={{ background: 'var(--cx-accent)' }} />
-          </button>
+          <div className="relative" ref={bellRef}>
+            <button
+              onClick={() => setBellOpen(o => !o)}
+              className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors relative"
+              style={{ color: bellOpen ? 'var(--cx-ink)' : 'var(--cx-mute-1)', background: bellOpen ? 'var(--cx-paper-2)' : '' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--cx-paper-2)')}
+              onMouseLeave={e => { if (!bellOpen) e.currentTarget.style.background = '' }}
+            >
+              <Bell size={15} />
+              <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full" style={{ background: 'var(--cx-accent)' }} />
+            </button>
+
+            <AnimatePresence>
+            {bellOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+                style={{ transformOrigin: 'top right' }}
+                className="absolute top-[calc(100%+8px)] right-0 w-[280px] cx-panel p-4 z-50"
+              >
+                <p className="cx-rule-label mb-3">Notifications</p>
+                <div className="flex flex-col items-center py-6 gap-2">
+                  <BellOff size={20} style={{ color: 'var(--cx-mute-2)' }} />
+                  <p className="text-[12.5px] font-medium" style={{ color: 'var(--cx-mute-1)' }}>No notifications</p>
+                  <p className="text-[11.5px] text-center" style={{ color: 'var(--cx-mute-2)' }}>
+                    You&apos;re all caught up. Alerts will appear here.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+            </AnimatePresence>
+          </div>
 
           {/* Workspace / avatar dropdown */}
           <div className="relative" ref={ref}>

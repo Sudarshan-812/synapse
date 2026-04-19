@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 
 const AGENTS = [
   { name: 'Legal Diligence',     runs: 148, status: 'running' },
@@ -10,12 +11,14 @@ const AGENTS = [
 ] as const
 
 export function AgentsCard() {
+  const router = useRouter()
   return (
     <div id="agents" className="cx-panel p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="cx-rule-label">Active agents</p>
         <motion.button
           whileTap={{ scale: 0.94 }}
+          onClick={() => router.push('/chat')}
           className="text-[11px] font-medium transition-colors"
           style={{ color: 'var(--cx-mute-1)' }}
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--cx-ink)')}

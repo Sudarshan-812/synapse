@@ -90,10 +90,12 @@ export function MetricsGrid({
   docs,
   embeddings,
   storageMB,
+  sessions,
 }: {
   docs: number
   embeddings: number
   storageMB: number
+  sessions?: number
 }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -101,32 +103,29 @@ export function MetricsGrid({
         label="Documents embedded"
         value={docs}
         sub="Corpus"
-        trend="+12%"
         sparkColor="var(--cx-accent)"
-        spark={[8, 12, 10, 16, 18, 14, 22, 24, 20, 28, 32, 30, docs]}
+        spark={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, docs]}
       />
       <MetricTile
         label="Vector embeddings"
         value={embeddings}
         sub="pgvector · 768-dim"
-        trend="+8%"
         sparkColor="var(--cx-accent)"
-        spark={[30, 28, 40, 38, 52, 60, 58, 72, 78, 88, 84, 96, embeddings]}
+        spark={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, embeddings]}
       />
       <MetricTile
-        label="Active agents"
-        value={7}
-        sub="Deployed"
+        label="Storage used"
+        value={storageMB}
+        sub="Storage · MB"
         sparkColor="var(--cx-ok)"
-        spark={[3, 4, 3, 5, 4, 6, 5, 6, 7, 6, 7, 7, 7]}
+        spark={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, storageMB]}
       />
       <MetricTile
-        label={`Storage · ${storageMB} MB`}
-        value={1204}
-        sub="SSE streams · 30d"
-        trend="+23%"
+        label="Chat sessions"
+        value={sessions ?? 0}
+        sub="Sessions · all time"
         sparkColor="var(--cx-ok)"
-        spark={[20, 24, 22, 30, 28, 36, 34, 44, 48, 46, 58, 62, 68]}
+        spark={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sessions ?? 0]}
       />
     </div>
   )
